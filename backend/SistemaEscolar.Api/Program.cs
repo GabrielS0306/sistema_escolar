@@ -1,3 +1,4 @@
+using Scalar.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using SistemaEscolar.Infrastructure.Data;
 
@@ -16,6 +17,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();
