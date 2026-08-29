@@ -17,4 +17,6 @@ public class AppDbContext : DbContext
     public DbSet<Disciplina> Disciplinas => Set<Disciplina>();
     public DbSet<ProfessorTurmaDisciplina> ProfessorTurmaDisciplinas => Set<ProfessorTurmaDisciplina>();
     public DbSet<Frequencia> Frequencias => Set<Frequencia>();
+    public DbSet<Avaliacao> Avaliacoes => Set<Avaliacao>();
+    public DbSet<Nota> Notas => Set<Nota>();
 }
