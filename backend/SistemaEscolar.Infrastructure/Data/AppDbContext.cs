@@ -10,7 +10,10 @@ public class AppDbContext : DbContext
 
     public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<Aluno> Alunos => Set<Aluno>();
+    public DbSet<Professor> Professores => Set<Professor>();
     public DbSet<AnoLetivo> AnosLetivos => Set<AnoLetivo>();
     public DbSet<Turma> Turmas => Set<Turma>();
     public DbSet<Matricula> Matriculas => Set<Matricula>();
+    public DbSet<Disciplina> Disciplinas => Set<Disciplina>();
+    public DbSet<ProfessorTurmaDisciplina> ProfessorTurmaDisciplinas => Set<ProfessorTurmaDisciplina>();
 }
