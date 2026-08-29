@@ -59,17 +59,17 @@ public class NotasController : ControllerBase
     }
 
     [HttpGet("aluno/{alunoId}")]
-    public async Task<ActionResult<IEnumerable<object>>> GetPorAluno(Guid alunoId)
+    public async Task<ActionResult<IEnumerable<NotaComAvaliacaoResponseDto>>> GetPorAluno(Guid alunoId)
     {
         var notas = await _context.Notas
             .Include(n => n.Avaliacao)
             .Where(n => n.AlunoId == alunoId)
-            .Select(n => new
+            .Select(n => new NotaComAvaliacaoResponseDto
             {
-                n.Id,
-                n.Valor,
-                n.Avaliacao.Bimestre,
-                n.Avaliacao.Nome
+                Id = n.Id,
+                Valor = n.Valor,
+                Bimestre = n.Avaliacao.Bimestre,
+                NomeAvaliacao = n.Avaliacao.Nome
             })
             .ToListAsync();
 
