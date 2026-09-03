@@ -21,5 +21,6 @@ public class SituacaoDisciplina
     public ProfessorTurmaDisciplina ProfessorTurmaDisciplina { get; set; } = null!;
 
     public decimal? MediaFinal { get; set; }
+    public decimal? NotaProvaFinal { get; set; }
     public StatusDisciplina Status { get; set; } = StatusDisciplina.EmAndamento;
 }
