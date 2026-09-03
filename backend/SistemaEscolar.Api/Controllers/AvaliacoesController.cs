@@ -27,6 +27,7 @@ public class AvaliacoesController : ControllerBase
             {
                 Id = a.Id,
                 Bimestre = a.Bimestre,
+                Tipo = a.Tipo, 
                 Nome = a.Nome,
                 Data = a.Data,
                 Turma = a.ProfessorTurmaDisciplina.Turma.Nome,
@@ -52,6 +53,7 @@ public class AvaliacoesController : ControllerBase
             Id = Guid.NewGuid(),
             ProfessorTurmaDisciplinaId = dto.ProfessorTurmaDisciplinaId,
             Bimestre = dto.Bimestre,
+            Tipo = dto.Tipo,
             Nome = dto.Nome,
             Data = dto.Data
         };
@@ -63,6 +65,7 @@ public class AvaliacoesController : ControllerBase
         {
             Id = avaliacao.Id,
             Bimestre = avaliacao.Bimestre,
+            Tipo = avaliacao.Tipo,
             Nome = avaliacao.Nome,
             Data = avaliacao.Data,
             Turma = vinculo.Turma.Nome,

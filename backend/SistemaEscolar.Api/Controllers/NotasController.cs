@@ -20,8 +20,8 @@ public class NotasController : ControllerBase
     [HttpPost("lancar")]
     public async Task<ActionResult<IEnumerable<NotaResponseDto>>> Lancar(LancarNotasDto dto)
     {
-        var avaliacaoExiste = await _context.Avaliacoes.AnyAsync(a => a.Id == dto.AvaliacaoId);
-        if (!avaliacaoExiste) return BadRequest("AvaliacaoId informado não existe.");
+        var avaliacao = await _context.Avaliacoes.FirstOrDefaultAsync(a => a.Id == dto.AvaliacaoId);
+        if (avaliacao is null) return BadRequest("AvaliacaoId informado não existe.");
 
         var notas = new List<Nota>();
 
@@ -41,6 +41,11 @@ public class NotasController : ControllerBase
 
         _context.Notas.AddRange(notas);
         await _context.SaveChangesAsync();
+
+        foreach (var nota in notas)
+        {
+            await AtualizarSituacaoDisciplina(nota.AlunoId, avaliacao.ProfessorTurmaDisciplinaId);
+        }
 
         var alunoIds = notas.Select(n => n.AlunoId).ToList();
         var nomesAlunos = await _context.Alunos
@@ -74,5 +79,64 @@ public class NotasController : ControllerBase
             .ToListAsync();
 
         return Ok(notas);
+    }
+
+    private async Task AtualizarSituacaoDisciplina(Guid alunoId, Guid professorTurmaDisciplinaId)
+    {
+        var notasDoAluno = await _context.Notas
+            .Include(n => n.Avaliacao)
+            .Where(n => n.AlunoId == alunoId
+                    && n.Avaliacao.ProfessorTurmaDisciplinaId == professorTurmaDisciplinaId)
+            .ToListAsync();
+
+        var mediasPorBimestre = new List<decimal>();
+
+        for (int bimestre = 1; bimestre <= 4; bimestre++)
+        {
+            var notasDoBimestre = notasDoAluno
+                .Where(n => n.Avaliacao.Bimestre == bimestre)
+                .ToList();
+
+            var tiposLancados = notasDoBimestre
+                .Select(n => n.Avaliacao.Tipo)
+                .Distinct()
+                .ToList();
+
+            var tiposObrigatorios = new[]
+            {
+                TipoAvaliacao.Comportamento,
+                TipoAvaliacao.Atividade,
+                TipoAvaliacao.ProvaBimestral
+            };
+
+            var bimestreCompleto = tiposObrigatorios.All(t => tiposLancados.Contains(t));
+            if (!bimestreCompleto) return;
+
+            var mediaBimestre = notasDoBimestre.Average(n => n.Valor);
+            mediasPorBimestre.Add(mediaBimestre);
+        }
+
+        var mediaFinal = mediasPorBimestre.Average();
+
+        var situacao = await _context.SituacoesDisciplina
+            .FirstOrDefaultAsync(s => s.AlunoId == alunoId && s.ProfessorTurmaDisciplinaId == professorTurmaDisciplinaId);
+
+        if (situacao is null)
+        {
+            situacao = new SituacaoDisciplina
+            {
+                Id = Guid.NewGuid(),
+                AlunoId = alunoId,
+                ProfessorTurmaDisciplinaId = professorTurmaDisciplinaId
+            };
+            _context.SituacoesDisciplina.Add(situacao);
+        }
+
+        situacao.MediaFinal = mediaFinal;
+        situacao.Status = mediaFinal >= 6
+            ? StatusDisciplina.Aprovado
+            : StatusDisciplina.EmRecuperacao;
+
+        await _context.SaveChangesAsync();
     }
 }

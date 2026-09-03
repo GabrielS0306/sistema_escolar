@@ -19,4 +19,5 @@ public class AppDbContext : DbContext
     public DbSet<Frequencia> Frequencias => Set<Frequencia>();
     public DbSet<Avaliacao> Avaliacoes => Set<Avaliacao>();
     public DbSet<Nota> Notas => Set<Nota>();
+    public DbSet<SituacaoDisciplina> SituacoesDisciplina => Set<SituacaoDisciplina>();
 }
