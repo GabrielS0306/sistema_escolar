@@ -20,4 +20,6 @@ public class AppDbContext : DbContext
     public DbSet<Avaliacao> Avaliacoes => Set<Avaliacao>();
     public DbSet<Nota> Notas => Set<Nota>();
     public DbSet<SituacaoDisciplina> SituacoesDisciplina => Set<SituacaoDisciplina>();
+    public DbSet<ConselhoClasse> ConselhosClasse => Set<ConselhoClasse>();
+    public DbSet<VotoConselho> VotosConselho => Set<VotoConselho>();
 }

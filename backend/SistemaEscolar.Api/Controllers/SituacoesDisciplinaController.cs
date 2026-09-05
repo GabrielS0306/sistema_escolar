@@ -62,6 +62,11 @@ public class SituacoesDisciplinaController : ControllerBase
 
         await _context.SaveChangesAsync();
 
+        if (situacao.Status == StatusDisciplina.Reprovado)
+        {
+            await VerificarNecessidadeConselho(situacao.AlunoId, situacao.ProfessorTurmaDisciplina.TurmaId);
+        }
+
         var response = new SituacaoDisciplinaResponseDto
         {
             Id = situacao.Id,
@@ -73,5 +78,33 @@ public class SituacoesDisciplinaController : ControllerBase
         };
 
         return Ok(response);
+    }
+
+    private async Task VerificarNecessidadeConselho(Guid alunoId, Guid turmaId)
+    {
+        var totalReprovadas = await _context.SituacoesDisciplina
+            .CountAsync(s => s.AlunoId == alunoId && s.Status == StatusDisciplina.Reprovado);
+
+        if (totalReprovadas < 3) return;
+
+        var jaExisteConselho = await _context.ConselhosClasse
+            .AnyAsync(c => c.AlunoId == alunoId && c.Resultado == ResultadoConselho.PendenteVotacao);
+
+        if (jaExisteConselho) return; // já existe um conselho pendente, não duplica
+
+        var turma = await _context.Turmas.FindAsync(turmaId);
+        if (turma is null) return;
+
+        var conselho = new ConselhoClasse
+        {
+            Id = Guid.NewGuid(),
+            AlunoId = alunoId,
+            AnoLetivoId = turma.AnoLetivoId,
+            Data = DateTime.UtcNow,
+            Resultado = ResultadoConselho.PendenteVotacao
+        };
+
+        _context.ConselhosClasse.Add(conselho);
+        await _context.SaveChangesAsync();
     }
 }
