@@ -23,4 +23,5 @@ public class AppDbContext : DbContext
     public DbSet<ConselhoClasse> ConselhosClasse => Set<ConselhoClasse>();
     public DbSet<VotoConselho> VotosConselho => Set<VotoConselho>();
     public DbSet<Ocorrencia> Ocorrencias => Set<Ocorrencia>();  
+    public DbSet<Comunicado> Comunicados => Set<Comunicado>();
 }
