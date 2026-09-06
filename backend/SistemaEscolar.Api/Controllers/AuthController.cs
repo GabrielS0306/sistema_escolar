@@ -59,33 +59,40 @@ public class AuthController : ControllerBase
         var senhaValida = BCrypt.Net.BCrypt.Verify(dto.Senha, usuario.SenhaHash);
         if (!senhaValida) return Unauthorized("Email ou senha inválidos.");
 
-        var ehAluno = await _context.Alunos.AnyAsync(a => a.UsuarioId == usuario.Id);
-        var ehProfessor = await _context.Professores.AnyAsync(p => p.UsuarioId == usuario.Id);
+        var papeis = new List<string>();
 
-        var papel = ehAluno ? "Aluno" : ehProfessor ? "Professor" : "SemPerfil";
+        if (await _context.Admins.AnyAsync(a => a.UsuarioId == usuario.Id)) papeis.Add("Admin");
+        if (await _context.Coordenadores.AnyAsync(c => c.UsuarioId == usuario.Id)) papeis.Add("Coordenador");
+        if (await _context.Professores.AnyAsync(p => p.UsuarioId == usuario.Id)) papeis.Add("Professor");
+        if (await _context.Responsaveis.AnyAsync(r => r.UsuarioId == usuario.Id)) papeis.Add("Responsavel");
+        if (await _context.Alunos.AnyAsync(a => a.UsuarioId == usuario.Id)) papeis.Add("Aluno");
+        if (await _context.Funcionarios.AnyAsync(f => f.UsuarioId == usuario.Id)) papeis.Add("Funcionario");
 
-        var token = GerarToken(usuario, papel);
+        if (papeis.Count == 0) papeis.Add("SemPerfil");
+
+        var token = GerarToken(usuario, papeis);
 
         return Ok(new LoginResponseDto
         {
             Token = token,
             Nome = usuario.Nome,
-            Papel = papel
+            Papeis = papeis
         });
     }
-
-    private string GerarToken(Usuario usuario, string papel)
+    private string GerarToken(Usuario usuario, List<string> papeis)
     {
         var jwtKey = _configuration["Jwt:Key"]!;
         var jwtIssuer = _configuration["Jwt:Issuer"]!;
         var jwtAudience = _configuration["Jwt:Audience"]!;
 
-        var claims = new[]
+        var claims = new List<System.Security.Claims.Claim>
         {
             new System.Security.Claims.Claim("sub", usuario.Id.ToString()),
-            new System.Security.Claims.Claim("nome", usuario.Nome),
-            new System.Security.Claims.Claim("papel", papel)
+            new System.Security.Claims.Claim("nome", usuario.Nome)
         };
+
+        foreach (var papel in papeis)
+            claims.Add(new System.Security.Claims.Claim("papel", papel));
 
         var key = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
             System.Text.Encoding.UTF8.GetBytes(jwtKey));
