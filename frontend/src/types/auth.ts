@@ -1,7 +1,7 @@
 export interface LoginResponse {
     token: string;
     nome: string;
-    papel: string;
+    papeis: string[];
 }
 
 export interface RegistrarResponse {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { registrar } from '../services/authService';
+import { registrar } from '../../services/authService';
 
 export function Registro() {
     const navigate = useNavigate();

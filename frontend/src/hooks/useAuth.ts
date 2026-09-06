@@ -3,7 +3,8 @@ import { useState } from 'react';
 interface Sessao {
     token: string;
     nome: string;
-    papel: string;
+    papeis: string[];
+    papelAtivo: string;
 }
 
 const CHAVE_SESSAO = 'sistema-escolar-sessao';

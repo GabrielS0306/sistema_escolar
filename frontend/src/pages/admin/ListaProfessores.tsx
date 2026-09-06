@@ -1,4 +1,4 @@
-import { useProfessores } from '../hooks/useProfessores';
+import { useProfessores } from '../../hooks/useProfessores';
 
 export function ListaProfessores() {
     const { professores, carregando, erro } = useProfessores();

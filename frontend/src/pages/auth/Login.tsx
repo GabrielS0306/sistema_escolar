@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { login } from '../services/authService';
-import { useAuth } from '../hooks/useAuth';
+import { login } from '../../services/authService';
+import { useAuth } from '../../hooks/useAuth';
 
 const ROTAS_POR_PAPEL: Record<string, string> = {
     Aluno: '/dashboard/aluno',
@@ -24,10 +24,16 @@ export function Login() {
 
         try {
             const resposta = await login(email, senha);
-            salvarSessao(resposta);
-            navigate(ROTAS_POR_PAPEL[resposta.papel] ?? '/dashboard/sem-perfil');
+
+            if (resposta.papeis.length > 1) {
+                navigate('/selecionar-papel', { state: resposta });
+            } else {
+                const papel = resposta.papeis[0] ?? 'SemPerfil';
+                salvarSessao({ ...resposta, papelAtivo: papel });
+                navigate(ROTAS_POR_PAPEL[papel] ?? '/dashboard/sem-perfil');
+            }
         } catch (err) {
-            setErro('Email ou senha inválidos.' + {err});
+            setErro('Email ou senha inválidos.' + err);
         } finally {
             setCarregando(false);
         }

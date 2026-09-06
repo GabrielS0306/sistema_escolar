@@ -1,4 +1,4 @@
-import { useTurmas } from '../hooks/useTurmas';
+import { useTurmas } from '../../hooks/useTurmas';
 
 const NOMES_TURNO = ['Manhã', 'Tarde', 'Noite'];
 
