@@ -24,4 +24,9 @@ public class AppDbContext : DbContext
     public DbSet<VotoConselho> VotosConselho => Set<VotoConselho>();
     public DbSet<Ocorrencia> Ocorrencias => Set<Ocorrencia>();  
     public DbSet<Comunicado> Comunicados => Set<Comunicado>();
+    public DbSet<Coordenador> Coordenadores => Set<Coordenador>();
+    public DbSet<Admin> Admins => Set<Admin>();
+    public DbSet<Funcionario> Funcionarios => Set<Funcionario>();
+    public DbSet<Responsavel> Responsaveis => Set<Responsavel>();
+    public DbSet<ResponsavelAluno> ResponsaveisAlunos => Set<ResponsavelAluno>();
 }
