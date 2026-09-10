@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SistemaEscolar.Api.DTOs;
 using SistemaEscolar.Domain.Entities;
 using SistemaEscolar.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SistemaEscolar.Api.Controllers;
 
@@ -20,6 +21,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("registrar")]
+    [AllowAnonymous]
     public async Task<ActionResult<UsuarioResponseDto>> Registrar(RegistrarDto dto)
     {
         var emailJaExiste = await _context.Usuarios.AnyAsync(u => u.Email == dto.Email);
@@ -51,6 +53,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [AllowAnonymous]
     public async Task<ActionResult<LoginResponseDto>> Login(LoginDto dto)
     {
         var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == dto.Email);
