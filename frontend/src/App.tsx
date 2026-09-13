@@ -6,7 +6,7 @@ import { ListaProfessores } from './pages/admin/ListaProfessores';
 import { ConsultaFrequencia } from './pages/admin/ConsultaFrequencia';
 import { ConsultaNotas } from './pages/admin/ConsultaNotas';
 import { Login } from './pages/auth/Login';
-import { Registro } from './pages/auth/Registro';
+import { CadastrarUsuario } from './pages/admin/CadastrarUsuario';
 import { SelecionarPapel } from './pages/auth/SelecionarPapel';
 import { DashboardAdmin } from './pages/admin/DashboardAdmin';
 import { DashboardCoordenador } from './pages/coordenador/DashboardCoordenador';
@@ -22,10 +22,8 @@ function App() {
       <Routes>
         <Route index element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/registro" element={<Registro />} />
         <Route path="/selecionar-papel" element={<SelecionarPapel />} />
 
-        <Route path="/dashboard/admin" element={<DashboardAdmin />} />
         <Route path="/dashboard/coordenador" element={<DashboardCoordenador />} />
         <Route path="/dashboard/professor" element={<DashboardProfessor />} />
         <Route path="/dashboard/responsavel" element={<DashboardResponsavel />} />
@@ -34,6 +32,8 @@ function App() {
         <Route path="/dashboard/sem-perfil" element={<DashboardSemPerfil />} />
 
         <Route path="/admin" element={<Layout />}>
+          <Route index element={<DashboardAdmin />} />
+          <Route path="usuarios/novo" element={<CadastrarUsuario />} />
           <Route path="alunos" element={<ListaAlunos />} />
           <Route path="turmas" element={<ListaTurmas />} />
           <Route path="professores" element={<ListaProfessores />} />

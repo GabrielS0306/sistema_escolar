@@ -21,7 +21,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("registrar")]
-    [AllowAnonymous]
+    [Authorize(Roles = "Admin,Coordenador")]
     public async Task<ActionResult<UsuarioResponseDto>> Registrar(RegistrarDto dto)
     {
         var emailJaExiste = await _context.Usuarios.AnyAsync(u => u.Email == dto.Email);

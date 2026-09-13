@@ -1,11 +1,15 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { login } from '../../services/authService';
 import { useAuth } from '../../hooks/useAuth';
 
 const ROTAS_POR_PAPEL: Record<string, string> = {
-    Aluno: '/dashboard/aluno',
+    Admin: '/admin',
+    Coordenador: '/dashboard/coordenador',
     Professor: '/dashboard/professor',
+    Responsavel: '/dashboard/responsavel',
+    Aluno: '/dashboard/aluno',
+    Funcionario: '/dashboard/funcionario',
     SemPerfil: '/dashboard/sem-perfil',
 };
 
@@ -71,14 +75,6 @@ export function Login() {
                 >
                     {carregando ? 'Entrando...' : 'Entrar'}
                 </button>
-
-                <p className="text-sm text-center mt-4">
-                    Não tem conta?{' '}
-
-                    <Link to="/registro" className="text-blue-600 hover:underline">
-                        Criar conta
-                    </Link>
-                </p>
             </form>
         </div>
     );

@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
 const ROTAS_POR_PAPEL: Record<string, string> = {
-    Admin: '/dashboard/admin',
+    Admin: '/admin',
     Coordenador: '/dashboard/coordenador',
     Professor: '/dashboard/professor',
     Responsavel: '/dashboard/responsavel',
