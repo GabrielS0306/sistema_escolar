@@ -26,7 +26,6 @@ public class AlunosController : ControllerBase
             {
                 Id = a.Id,
                 Matricula = a.Matricula,
-                DataNascimento = a.DataNascimento,
                 NomeUsuario = a.Usuario.Nome
             })
             .ToListAsync();
@@ -44,7 +43,6 @@ public class AlunosController : ControllerBase
             {
                 Id = a.Id,
                 Matricula = a.Matricula,
-                DataNascimento = a.DataNascimento,
                 NomeUsuario = a.Usuario.Nome
             })
             .FirstOrDefaultAsync();
@@ -65,7 +63,6 @@ public class AlunosController : ControllerBase
             Id = Guid.NewGuid(),
             UsuarioId = dto.UsuarioId,
             Matricula = dto.Matricula,
-            DataNascimento = dto.DataNascimento
         };
 
         _context.Alunos.Add(aluno);
@@ -75,7 +72,6 @@ public class AlunosController : ControllerBase
         {
             Id = aluno.Id,
             Matricula = aluno.Matricula,
-            DataNascimento = aluno.DataNascimento,
             NomeUsuario = usuario.Nome
         };
 

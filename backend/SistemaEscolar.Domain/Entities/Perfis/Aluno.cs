@@ -9,7 +9,4 @@ public class Aluno
     public Usuario Usuario { get; set; } = null!;
 
     public string Matricula { get; set; } = string.Empty;
-    public DateTime DataNascimento { get; set; }
-
-    // TurmaId virá quando a estrutura de turmas for definida
 }

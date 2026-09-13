@@ -1,3 +1,4 @@
+using SistemaEscolar.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SistemaEscolar.Api.DTOs;
@@ -13,16 +14,18 @@ public class AuthController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly SupabaseStorageService _storageService;
 
-    public AuthController(AppDbContext context, IConfiguration configuration)
+    public AuthController(AppDbContext context, IConfiguration configuration, SupabaseStorageService storageService)
     {
         _context = context;
         _configuration = configuration;
+        _storageService = storageService;
     }
 
     [HttpPost("registrar")]
     [Authorize(Roles = "Admin,Coordenador")]
-    public async Task<ActionResult<UsuarioResponseDto>> Registrar(RegistrarDto dto)
+    public async Task<ActionResult<UsuarioResponseDto>> Registrar([FromForm] RegistrarDto dto, IFormFile? foto)
     {
         var emailJaExiste = await _context.Usuarios.AnyAsync(u => u.Email == dto.Email);
         if (emailJaExiste) return BadRequest("Já existe um usuário com esse email.");
@@ -36,8 +39,18 @@ public class AuthController : ControllerBase
             Email = dto.Email,
             SenhaHash = senhaHash,
             Ativo = true,
-            CriadoEm = DateTime.UtcNow
+            CriadoEm = DateTime.UtcNow,
+            Telefone = dto.Telefone,
+            Cpf = dto.Cpf,
+            Endereco = dto.Endereco,
+            DataNascimento = dto.DataNascimento,
+            Sexo = dto.Sexo
         };
+
+        if (foto is not null)
+        {
+            usuario.FotoPerfilUrl = await _storageService.UploadFotoAsync(foto, usuario.Id);
+        }
 
         _context.Usuarios.Add(usuario);
         await _context.SaveChangesAsync();
