@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SistemaEscolar.Api.DTOs;
 using SistemaEscolar.Domain.Entities.Perfis;
 using SistemaEscolar.Infrastructure.Data;
-
+using Microsoft.AspNetCore.Authorization;
 namespace SistemaEscolar.Api.Controllers;
 
 [ApiController]
@@ -29,6 +29,7 @@ public class CoordenadoresController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<CoordenadorResponseDto>> Create(CreateCoordenadorDto dto)
     {
         var usuario = await _context.Usuarios.FindAsync(dto.UsuarioId);

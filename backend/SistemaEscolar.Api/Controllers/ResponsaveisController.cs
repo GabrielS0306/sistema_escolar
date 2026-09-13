@@ -4,6 +4,7 @@ using SistemaEscolar.Api.DTOs;
 using SistemaEscolar.Domain.Entities;
 using SistemaEscolar.Domain.Entities.Perfis;
 using SistemaEscolar.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SistemaEscolar.Api.Controllers;
 
@@ -30,6 +31,7 @@ public class ResponsaveisController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Coordenador")]
     public async Task<ActionResult<ResponsavelResponseDto>> Create(CreateResponsavelDto dto)
     {
         var usuario = await _context.Usuarios.FindAsync(dto.UsuarioId);
@@ -46,6 +48,7 @@ public class ResponsaveisController : ControllerBase
     }
 
     [HttpPost("{id}/vincular-aluno")]
+    [Authorize(Roles = "Admin,Coordenador")]
     public async Task<ActionResult> VincularAluno(Guid id, VincularAlunoDto dto)
     {
         var responsavel = await _context.Responsaveis.FindAsync(id);

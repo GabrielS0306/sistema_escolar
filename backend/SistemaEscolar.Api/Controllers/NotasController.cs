@@ -4,6 +4,7 @@ using SistemaEscolar.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using SistemaEscolar.Domain.Entities;
 using SistemaEscolar.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SistemaEscolar.Api.Controllers;
 
@@ -19,6 +20,7 @@ public class NotasController : ControllerBase
     }
 
     [HttpPost("lancar")]
+    [Authorize(Roles = "Admin,Coordenador,Professor")]
     public async Task<ActionResult<IEnumerable<NotaResponseDto>>> Lancar(LancarNotasDto dto)
     {
         var avaliacao = await _context.Avaliacoes.FirstOrDefaultAsync(a => a.Id == dto.AvaliacaoId);
@@ -142,6 +144,7 @@ public class NotasController : ControllerBase
     }
 
     [HttpPost("importar")]
+    [Authorize(Roles = "Admin,Coordenador,Professor")]
     public async Task<ActionResult<IEnumerable<NotaResponseDto>>> Importar([FromQuery] Guid avaliacaoId, IFormFile arquivo)
     {
         var avaliacao = await _context.Avaliacoes.FirstOrDefaultAsync(a => a.Id == avaliacaoId);

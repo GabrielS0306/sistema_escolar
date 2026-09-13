@@ -4,6 +4,7 @@ using SistemaEscolar.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using SistemaEscolar.Domain.Entities;
 using SistemaEscolar.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SistemaEscolar.Api.Controllers;
 
@@ -19,6 +20,7 @@ public class FrequenciasController : ControllerBase
     }
 
     [HttpPost("registrar")]
+    [Authorize(Roles = "Admin,Coordenador,Professor")]
     public async Task<ActionResult<IEnumerable<FrequenciaResponseDto>>> Registrar(RegistrarFrequenciaDto dto)
     {
         var vinculoExiste = await _context.ProfessorTurmaDisciplinas.AnyAsync(v => v.Id == dto.ProfessorTurmaDisciplinaId);
@@ -80,6 +82,7 @@ public class FrequenciasController : ControllerBase
     }
 
     [HttpPost("importar")]
+    [Authorize(Roles = "Admin,Coordenador,Professor")]
     public async Task<ActionResult<IEnumerable<FrequenciaResponseDto>>> Importar([FromQuery] Guid professorTurmaDisciplinaId, [FromQuery] DateTime data, IFormFile arquivo)
     {
         var vinculoExiste = await _context.ProfessorTurmaDisciplinas.AnyAsync(v => v.Id == professorTurmaDisciplinaId);

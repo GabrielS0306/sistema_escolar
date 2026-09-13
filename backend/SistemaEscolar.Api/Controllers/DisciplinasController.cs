@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SistemaEscolar.Api.DTOs;
 using SistemaEscolar.Domain.Entities;
 using SistemaEscolar.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SistemaEscolar.Api.Controllers;
 
@@ -41,6 +42,7 @@ public class DisciplinasController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Coordenador")]        
     public async Task<ActionResult<DisciplinaResponseDto>> Create(CreateDisciplinaDto dto)
     {
         var disciplina = new Disciplina

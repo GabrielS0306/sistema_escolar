@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SistemaEscolar.Api.DTOs;
 using SistemaEscolar.Domain.Entities;
 using SistemaEscolar.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SistemaEscolar.Api.Controllers;
 
@@ -49,6 +50,7 @@ public class ConselhosClasseController : ControllerBase
     }
 
     [HttpPost("{id}/votar")]
+    [Authorize(Roles = "Professor")]
     public async Task<ActionResult<ConselhoClasseResponseDto>> Votar(Guid id, RegistrarVotoDto dto)
     {
         var conselho = await _context.ConselhosClasse
@@ -98,6 +100,7 @@ public class ConselhosClasseController : ControllerBase
     }
 
     [HttpPost("{id}/encerrar")]
+    [Authorize(Roles = "Admin,Coordenador")]
     public async Task<ActionResult<ConselhoClasseResponseDto>> Encerrar(Guid id)
     {
         var conselho = await _context.ConselhosClasse

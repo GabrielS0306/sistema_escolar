@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SistemaEscolar.Api.DTOs;
 using SistemaEscolar.Domain.Entities;
 using SistemaEscolar.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SistemaEscolar.Api.Controllers;
 
@@ -55,6 +56,7 @@ public class AnoLetivosController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Coordenador")]
     public async Task<ActionResult<AnoLetivoResponseDto>> Create(CreateAnoLetivoDto dto)
     {
         var anoLetivo = new AnoLetivo

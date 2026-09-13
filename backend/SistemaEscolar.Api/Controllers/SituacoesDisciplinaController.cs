@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SistemaEscolar.Domain.Entities;
 using SistemaEscolar.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 namespace SistemaEscolar.Api.Controllers;
 
 [ApiController]
@@ -39,6 +40,7 @@ public class SituacoesDisciplinaController : ControllerBase
     }
 
     [HttpPost("{id}/prova-final")]
+    [Authorize(Roles = "Admin,Coordenador")]
     public async Task<ActionResult<SituacaoDisciplinaResponseDto>> RegistrarProvaFinal(Guid id, RegistrarProvaFinalDto dto)
     {
         var situacao = await _context.SituacoesDisciplina

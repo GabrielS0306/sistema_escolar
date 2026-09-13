@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SistemaEscolar.Api.DTOs;
 using SistemaEscolar.Domain.Entities;
 using SistemaEscolar.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SistemaEscolar.Api.Controllers;
 
@@ -57,6 +58,7 @@ public class TurmasController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Coordenador")]
     public async Task<ActionResult<TurmaResponseDto>> Create(CreateTurmaDto dto)
     {
         var anoLetivo = await _context.AnosLetivos.FindAsync(dto.AnoLetivoId);

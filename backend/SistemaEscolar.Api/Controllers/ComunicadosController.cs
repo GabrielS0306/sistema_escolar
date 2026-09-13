@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SistemaEscolar.Api.DTOs;
 using SistemaEscolar.Domain.Entities;
 using SistemaEscolar.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SistemaEscolar.Api.Controllers;
 
@@ -38,6 +39,7 @@ public class ComunicadosController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Coordenador,Professor")]
     public async Task<ActionResult<ComunicadoResponseDto>> Create(CreateComunicadoDto dto)
     {
         if (dto.PublicoAlvo == PublicoAlvoComunicado.Turma && dto.TurmaId is null)
