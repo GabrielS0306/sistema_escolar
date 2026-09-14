@@ -15,6 +15,7 @@ import { DashboardResponsavel } from './pages/responsavel/DashboardResponsavel';
 import { DashboardAluno } from './pages/aluno/DashboardAluno';
 import { DashboardFuncionario } from './pages/funcionario/DashboardFuncionario';
 import { DashboardSemPerfil } from './pages/DashboardSemPerfil';
+import { ListaUsuarios } from './pages/admin/ListaUsuarios';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
 
         <Route path="/admin" element={<Layout />}>
           <Route index element={<DashboardAdmin />} />
+          <Route path="usuarios" element={<ListaUsuarios />} />
           <Route path="usuarios/novo" element={<CadastrarUsuario />} />
           <Route path="alunos" element={<ListaAlunos />} />
           <Route path="turmas" element={<ListaTurmas />} />

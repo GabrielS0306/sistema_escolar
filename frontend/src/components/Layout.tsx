@@ -12,6 +12,7 @@ const MENU_ITEMS = [
     { path: '/admin/professores', label: 'Professores' },
     { path: '/admin/frequencia', label: 'Frequência' },
     { path: '/admin/notas', label: 'Notas' },
+    { path: '/admin/usuarios', label: 'Usuários' },
 ];
 
 export function Layout() {

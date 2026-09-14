@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SistemaEscolar.Api.DTOs;
 using SistemaEscolar.Api.Services;
 using SistemaEscolar.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace SistemaEscolar.Api.Controllers;
 
@@ -75,5 +76,15 @@ public class UsuariosController : ControllerBase
             DataNascimento = usuario.DataNascimento,
             Sexo = usuario.Sexo
         });
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<UsuarioResponseDto>>> GetAll()
+    {
+        var usuarios = await _context.Usuarios
+            .Select(u => new UsuarioResponseDto { Id = u.Id, Nome = u.Nome, Email = u.Email })
+            .ToListAsync();
+
+        return Ok(usuarios);
     }
 }
