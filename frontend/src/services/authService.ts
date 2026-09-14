@@ -1,5 +1,6 @@
-import { apiPost, apiPostForm } from './api';
+import { apiPost, apiPostForm, apiGet, apiPutForm } from './api';
 import type { LoginResponse, RegistrarResponse } from '../types/auth';
+import type { UsuarioDetalhado } from '../types/usuario';
 
 export function login(email: string, senha: string): Promise<LoginResponse> {
     return apiPost<LoginResponse>('/Auth/login', { email, senha });
@@ -31,4 +32,18 @@ export function registrar(dados: DadosRegistro): Promise<RegistrarResponse> {
     if (dados.foto) formData.append('foto', dados.foto);
 
     return apiPostForm<RegistrarResponse>('/Auth/registrar', formData);
+}
+
+export function getMe(): Promise<UsuarioDetalhado> {
+    return apiGet<UsuarioDetalhado>('/Auth/me');
+}
+
+export function atualizarMe(dados: { telefone?: string; endereco?: string; foto?: File | null }): Promise<UsuarioDetalhado> {
+    const formData = new FormData();
+
+    if (dados.telefone) formData.append('Telefone', dados.telefone);
+    if (dados.endereco) formData.append('Endereco', dados.endereco);
+    if (dados.foto) formData.append('foto', dados.foto);
+
+    return apiPutForm<UsuarioDetalhado>('/Auth/me', formData);
 }

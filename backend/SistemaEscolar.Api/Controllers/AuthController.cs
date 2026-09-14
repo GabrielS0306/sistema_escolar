@@ -126,4 +126,58 @@ public class AuthController : ControllerBase
 
         return new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<ActionResult<UsuarioDetalhadoResponseDto>> Me()
+    {
+        var usuarioId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+        var usuario = await _context.Usuarios.FindAsync(usuarioId);
+        if (usuario is null) return NotFound();
+
+        return Ok(new UsuarioDetalhadoResponseDto
+        {
+            Id = usuario.Id,
+            Nome = usuario.Nome,
+            Email = usuario.Email,
+            Telefone = usuario.Telefone,
+            Cpf = usuario.Cpf,
+            Endereco = usuario.Endereco,
+            FotoPerfilUrl = usuario.FotoPerfilUrl,
+            DataNascimento = usuario.DataNascimento,
+            Sexo = usuario.Sexo
+        });
+    }
+
+    [HttpPut("me")]
+    [Authorize]
+    public async Task<ActionResult<UsuarioDetalhadoResponseDto>> AtualizarMe([FromForm] AtualizarPerfilDto dto, IFormFile? foto)
+    {
+        var usuarioId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+        var usuario = await _context.Usuarios.FindAsync(usuarioId);
+        if (usuario is null) return NotFound();
+
+        usuario.Telefone = dto.Telefone;
+        usuario.Endereco = dto.Endereco;
+
+        if (foto is not null)
+        {
+            usuario.FotoPerfilUrl = await _storageService.UploadFotoAsync(foto, usuario.Id);
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new UsuarioDetalhadoResponseDto
+        {
+            Id = usuario.Id,
+            Nome = usuario.Nome,
+            Email = usuario.Email,
+            Telefone = usuario.Telefone,
+            Cpf = usuario.Cpf,
+            Endereco = usuario.Endereco,
+            FotoPerfilUrl = usuario.FotoPerfilUrl,
+            DataNascimento = usuario.DataNascimento,
+            Sexo = usuario.Sexo
+        });
+    }
 }

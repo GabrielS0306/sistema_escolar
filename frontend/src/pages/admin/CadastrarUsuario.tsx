@@ -225,9 +225,9 @@ export function CadastrarUsuario() {
                             <div>
                                 <label className={labelClasses}>Função</label>
                                 <select value={funcao} onChange={(e) => setFuncao(e.target.value as Funcao)} className={inputClasses}>
-                                {FUNCOES.map((f) => (
-                                    <option key={f.value} value={f.value}>{f.label}</option>
-                                ))}
+                                    {FUNCOES.map((f) => (
+                                        <option key={f.value} value={f.value}>{f.label}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
