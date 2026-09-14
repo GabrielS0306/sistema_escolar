@@ -43,7 +43,9 @@ public class AuthController : ControllerBase
             Telefone = dto.Telefone,
             Cpf = dto.Cpf,
             Endereco = dto.Endereco,
-            DataNascimento = dto.DataNascimento,
+            DataNascimento = dto.DataNascimento.HasValue
+                ? DateTime.SpecifyKind(dto.DataNascimento.Value, DateTimeKind.Utc)
+                : null,
             Sexo = dto.Sexo
         };
 
