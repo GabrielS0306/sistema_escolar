@@ -7,12 +7,15 @@ export function ConsultaNotas() {
     const [alunoSelecionado, setAlunoSelecionado] = useState<string | null>(null);
     const { notas, carregando, erro } = useNotas(alunoSelecionado);
 
+    const selectClasses = 'border border-ink/20 rounded h-11 px-3 mb-8 focus:outline-none focus:border-gold';
+
     return (
-        <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">Notas</h1>
+        <div className="px-12 py-10">
+            <p className="text-sm text-slate">Gestão acadêmica</p>
+            <h1 className="font-serif text-3xl text-ink mt-1">Notas</h1>
 
             <select
-                className="border rounded p-2 mb-4"
+                className={`${selectClasses} mt-8`}
                 disabled={carregandoAlunos}
                 onChange={(e) => setAlunoSelecionado(e.target.value || null)}
                 defaultValue=""
@@ -20,31 +23,28 @@ export function ConsultaNotas() {
                 <option value="">Selecione um aluno</option>
 
                 {alunos.map((aluno) => (
-                    <option key={aluno.id} value={aluno.id}>
-                        {aluno.nomeUsuario}
-                    </option>
+                <option key={aluno.id} value={aluno.id}>{aluno.nomeUsuario}</option>
                 ))}
             </select>
 
-            {carregando && <p className="text-gray-500">Carregando notas...</p>}
-            {erro && <p className="text-red-500">Erro: {erro}</p>}
+            {carregando && <p className="text-slate">Carregando...</p>}
+            {erro && <p className="text-red-600">Erro: {erro}</p>}
 
             {alunoSelecionado && !carregando && (
-                <table className="w-full border-collapse">
+                <table className="w-full border-t border-ink/10">
                     <thead>
-                        <tr className="bg-gray-100 text-left">
-                        <th className="p-2 border-b">Bimestre</th>
-                        <th className="p-2 border-b">Avaliação</th>
-                        <th className="p-2 border-b">Nota</th>
+                        <tr className="border-b border-ink/10 text-left">
+                            <th className="py-3 text-sm font-normal text-slate">Bimestre</th>
+                            <th className="py-3 text-sm font-normal text-slate">Avaliação</th>
+                            <th className="py-3 text-sm font-normal text-slate">Nota</th>
                         </tr>
                     </thead>
-
                     <tbody>
                         {notas.map((n) => (
-                            <tr key={n.id} className="hover:bg-gray-50">
-                                <td className="p-2 border-b">{n.bimestre}º</td>
-                                <td className="p-2 border-b">{n.nomeAvaliacao}</td>
-                                <td className="p-2 border-b font-medium">{n.valor.toFixed(1)}</td>
+                            <tr key={n.id} className="border-b border-ink/10 hover:bg-ink/5 transition-colors">
+                                <td className="py-3 text-slate">{n.bimestre}º</td>
+                                <td className="py-3 text-ink">{n.nomeAvaliacao}</td>
+                                <td className="py-3 text-ink font-medium">{n.valor.toFixed(1)}</td>
                             </tr>
                         ))}
                     </tbody>

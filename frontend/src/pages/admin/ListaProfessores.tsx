@@ -3,24 +3,24 @@ import { useProfessores } from '../../hooks/useProfessores';
 export function ListaProfessores() {
     const { professores, carregando, erro } = useProfessores();
 
-    if (carregando) return <p className="text-gray-500 p-4">Carregando professores...</p>;
-    if (erro) return <p className="text-red-500 p-4">Erro: {erro}</p>;
+    if (carregando) return <p className="text-slate px-12 py-10">Carregando...</p>;
+    if (erro) return <p className="text-red-600 px-12 py-10">Erro: {erro}</p>;
 
     return (
-        <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">Professores</h1>
+        <div className="px-12 py-10">
+            <p className="text-sm text-slate">Gestão de pessoas</p>
+            <h1 className="font-serif text-3xl text-ink mt-1">Professores</h1>
 
-            <table className="w-full border-collapse">
+            <table className="w-full mt-10 border-t border-ink/10">
                 <thead>
-                    <tr className="bg-gray-100 text-left">
-                        <th className="p-2 border-b">Nome</th>
+                    <tr className="border-b border-ink/10 text-left">
+                        <th className="py-3 text-sm font-normal text-slate">Nome</th>
                     </tr>
                 </thead>
-
                 <tbody>
                     {professores.map((professor) => (
-                        <tr key={professor.id} className="hover:bg-gray-50">
-                        <td className="p-2 border-b">{professor.nomeUsuario}</td>
+                        <tr key={professor.id} className="border-b border-ink/10 hover:bg-ink/5 transition-colors">
+                        <td className="py-3 text-ink">{professor.nomeUsuario}</td>
                         </tr>
                     ))}
                 </tbody>
