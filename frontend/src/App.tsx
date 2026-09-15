@@ -16,6 +16,7 @@ import { DashboardAluno } from './pages/aluno/DashboardAluno';
 import { DashboardFuncionario } from './pages/funcionario/DashboardFuncionario';
 import { DashboardSemPerfil } from './pages/DashboardSemPerfil';
 import { ListaUsuarios } from './pages/admin/ListaUsuarios';
+import { LayoutAluno } from './components/LayoutAluno';
 
 function App() {
   return (
@@ -28,7 +29,9 @@ function App() {
         <Route path="/dashboard/coordenador" element={<DashboardCoordenador />} />
         <Route path="/dashboard/professor" element={<DashboardProfessor />} />
         <Route path="/dashboard/responsavel" element={<DashboardResponsavel />} />
-        <Route path="/dashboard/aluno" element={<DashboardAluno />} />
+        <Route path="/dashboard" element={<LayoutAluno />}>
+          <Route path="aluno" element={<DashboardAluno />} />
+        </Route>
         <Route path="/dashboard/funcionario" element={<DashboardFuncionario />} />
         <Route path="/dashboard/sem-perfil" element={<DashboardSemPerfil />} />
 
