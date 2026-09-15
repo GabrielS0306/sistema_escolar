@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SistemaEscolar.Api.DTOs;
 using SistemaEscolar.Domain.Entities;
 using SistemaEscolar.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SistemaEscolar.Api.Controllers;
 
@@ -70,5 +71,31 @@ public class ProfessorTurmaDisciplinasController : ControllerBase
         };
 
         return CreatedAtAction(nameof(GetAll), response);
+    }
+
+    [HttpGet("minhas")]
+    [Authorize(Roles = "Professor")]
+    public async Task<ActionResult<IEnumerable<ProfessorTurmaDisciplinaResponseDto>>> GetMinhas()
+    {
+        var usuarioId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+
+        var professor = await _context.Professores.FirstOrDefaultAsync(p => p.UsuarioId == usuarioId);
+        if (professor is null) return NotFound();
+
+        var vinculos = await _context.ProfessorTurmaDisciplinas
+            .Include(v => v.Professor).ThenInclude(p => p.Usuario)
+            .Include(v => v.Turma)
+            .Include(v => v.Disciplina)
+            .Where(v => v.ProfessorId == professor.Id)
+            .Select(v => new ProfessorTurmaDisciplinaResponseDto
+            {
+                Id = v.Id,
+                NomeProfessor = v.Professor.Usuario.Nome,
+                Turma = v.Turma.Nome,
+                Disciplina = v.Disciplina.Nome
+            })
+            .ToListAsync();
+
+        return Ok(vinculos);
     }
 }
