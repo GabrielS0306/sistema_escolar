@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SistemaEscolar.Api.DTOs;
 using SistemaEscolar.Domain.Entities.Perfis;
 using SistemaEscolar.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SistemaEscolar.Api.Controllers;
 
@@ -154,5 +155,20 @@ public class AlunosController : ControllerBase
         };
 
         return Ok(response);
+    }
+
+    [HttpGet("me/resumo")]
+    [Authorize(Roles = "Aluno")]
+    public async Task<ActionResult<ResumoAlunoResponseDto>> GetMeuResumo()
+    {
+        var usuarioId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+
+        var aluno = await _context.Alunos
+            .Include(a => a.Usuario)
+            .FirstOrDefaultAsync(a => a.UsuarioId == usuarioId);
+
+        if (aluno is null) return NotFound();
+
+        return await GetResumo(aluno.Id);
     }
 }

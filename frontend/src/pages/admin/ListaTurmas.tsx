@@ -5,30 +5,30 @@ const NOMES_TURNO = ['Manhã', 'Tarde', 'Noite'];
 export function ListaTurmas() {
     const { turmas, carregando, erro } = useTurmas();
 
-    if (carregando) return <p className="text-gray-500 p-4">Carregando turmas...</p>;
-    if (erro) return <p className="text-red-500 p-4">Erro: {erro}</p>;
+    if (carregando) return <p className="text-slate px-12 py-10">Carregando...</p>;
+    if (erro) return <p className="text-red-600 px-12 py-10">Erro: {erro}</p>;
 
     return (
-        <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">Turmas</h1>
+        <div className="px-12 py-10">
+            <p className="text-sm text-slate">Gestão acadêmica</p>
+            <h1 className="font-serif text-3xl text-ink mt-1">Turmas</h1>
 
-            <table className="w-full border-collapse">
+            <table className="w-full mt-10 border-t border-ink/10">
                 <thead>
-                    <tr className="bg-gray-100 text-left">
-                        <th className="p-2 border-b">Nome</th>
-                        <th className="p-2 border-b">Série</th>
-                        <th className="p-2 border-b">Turno</th>
-                        <th className="p-2 border-b">Ano Letivo</th>
+                    <tr className="border-b border-ink/10 text-left">
+                        <th className="py-3 text-sm font-normal text-slate">Nome</th>
+                        <th className="py-3 text-sm font-normal text-slate">Série</th>
+                        <th className="py-3 text-sm font-normal text-slate">Turno</th>
+                        <th className="py-3 text-sm font-normal text-slate">Ano letivo</th>
                     </tr>
                 </thead>
-
                 <tbody>
                     {turmas.map((turma) => (
-                        <tr key={turma.id} className="hover:bg-gray-50">
-                        <td className="p-2 border-b">{turma.nome}</td>
-                        <td className="p-2 border-b">{turma.serie}</td>
-                        <td className="p-2 border-b">{NOMES_TURNO[turma.turno]}</td>
-                        <td className="p-2 border-b">{turma.anoLetivo}</td>
+                        <tr key={turma.id} className="border-b border-ink/10 hover:bg-ink/5 transition-colors">
+                        <td className="py-3 text-ink">{turma.nome}</td>
+                        <td className="py-3 text-slate">{turma.serie}</td>
+                        <td className="py-3 text-slate">{NOMES_TURNO[turma.turno]}</td>
+                        <td className="py-3 text-slate">{turma.anoLetivo}</td>
                         </tr>
                     ))}
                 </tbody>

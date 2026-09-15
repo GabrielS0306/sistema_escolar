@@ -1,18 +1,24 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
+import { LayoutAluno } from './components/LayoutAluno';
+import { LayoutProfessor } from './components/LayoutProfessor';
+
+import { Login } from './pages/auth/Login';
+import { SelecionarPapel } from './pages/auth/SelecionarPapel';
+
+import { DashboardAdmin } from './pages/admin/DashboardAdmin';
+import { CadastrarUsuario } from './pages/admin/CadastrarUsuario';
+import { ListaUsuarios } from './pages/admin/ListaUsuarios';
 import { ListaAlunos } from './pages/admin/ListaAlunos';
 import { ListaTurmas } from './pages/admin/ListaTurmas';
 import { ListaProfessores } from './pages/admin/ListaProfessores';
 import { ConsultaFrequencia } from './pages/admin/ConsultaFrequencia';
 import { ConsultaNotas } from './pages/admin/ConsultaNotas';
-import { Login } from './pages/auth/Login';
-import { CadastrarUsuario } from './pages/admin/CadastrarUsuario';
-import { SelecionarPapel } from './pages/auth/SelecionarPapel';
-import { DashboardAdmin } from './pages/admin/DashboardAdmin';
-import { DashboardCoordenador } from './pages/coordenador/DashboardCoordenador';
-import { DashboardProfessor } from './pages/professor/DashboardProfessor';
-import { DashboardResponsavel } from './pages/responsavel/DashboardResponsavel';
+
 import { DashboardAluno } from './pages/aluno/DashboardAluno';
+import { DashboardProfessor } from './pages/professor/DashboardProfessor';
+import { DashboardCoordenador } from './pages/coordenador/DashboardCoordenador';
+import { DashboardResponsavel } from './pages/responsavel/DashboardResponsavel';
 import { DashboardFuncionario } from './pages/funcionario/DashboardFuncionario';
 import { DashboardSemPerfil } from './pages/DashboardSemPerfil';
 
@@ -24,15 +30,24 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/selecionar-papel" element={<SelecionarPapel />} />
 
-        <Route path="/dashboard/coordenador" element={<DashboardCoordenador />} />
-        <Route path="/dashboard/professor" element={<DashboardProfessor />} />
-        <Route path="/dashboard/responsavel" element={<DashboardResponsavel />} />
-        <Route path="/dashboard/aluno" element={<DashboardAluno />} />
-        <Route path="/dashboard/funcionario" element={<DashboardFuncionario />} />
-        <Route path="/dashboard/sem-perfil" element={<DashboardSemPerfil />} />
+        {/* Dashboards por papel */}
+        <Route path="/dashboard">
+          <Route path="aluno" element={<LayoutAluno />}>
+            <Route index element={<DashboardAluno />} />
+          </Route>
+          <Route path="professor" element={<LayoutProfessor />}>
+            <Route index element={<DashboardProfessor />} />
+          </Route>
+          <Route path="coordenador" element={<DashboardCoordenador />} />
+          <Route path="responsavel" element={<DashboardResponsavel />} />
+          <Route path="funcionario" element={<DashboardFuncionario />} />
+          <Route path="sem-perfil" element={<DashboardSemPerfil />} />
+        </Route>
 
+        {/* Painel administrativo */}
         <Route path="/admin" element={<Layout />}>
           <Route index element={<DashboardAdmin />} />
+          <Route path="usuarios" element={<ListaUsuarios />} />
           <Route path="usuarios/novo" element={<CadastrarUsuario />} />
           <Route path="alunos" element={<ListaAlunos />} />
           <Route path="turmas" element={<ListaTurmas />} />
