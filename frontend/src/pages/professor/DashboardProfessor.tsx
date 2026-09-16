@@ -17,8 +17,8 @@ export function DashboardProfessor() {
             ) : (
                 <div className="mt-10 border-t border-ink/10 divide-y divide-ink/10">
                     {vinculos.map((v) => (
-                        <Link key={v.id} to={`/dashboard/professor/turma/${v.turmaId}`} className="block py-4 group">
-                            <p className="text-ink group-hover:text-gold transition-colors">{v.disciplina}</p>
+                        <div key={v.id} className="py-4">
+                            <p className="text-ink">{v.disciplina}</p>
                             <p className="text-sm text-slate">{v.turma}</p>
                         </Link>
                     ))}
