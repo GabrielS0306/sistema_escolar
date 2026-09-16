@@ -6,6 +6,20 @@ namespace SistemaEscolar.Infrastructure.Data;
 
 public class AppDbContext : DbContext
 {
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<DocumentoUsuario>()
+            .HasOne(d => d.Usuario)
+            .WithMany()
+            .HasForeignKey(d => d.UsuarioId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<DocumentoUsuario>()
+            .HasOne(d => d.RegistradoPorUsuario)
+            .WithMany()
+            .HasForeignKey(d => d.RegistradoPorUsuarioId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<Usuario> Usuarios => Set<Usuario>();
@@ -29,4 +43,5 @@ public class AppDbContext : DbContext
     public DbSet<Funcionario> Funcionarios => Set<Funcionario>();
     public DbSet<Responsavel> Responsaveis => Set<Responsavel>();
     public DbSet<ResponsavelAluno> ResponsaveisAlunos => Set<ResponsavelAluno>();
+    public DbSet<DocumentoUsuario> DocumentosUsuario => Set<DocumentoUsuario>();
 }
