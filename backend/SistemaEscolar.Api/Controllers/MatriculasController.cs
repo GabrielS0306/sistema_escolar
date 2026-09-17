@@ -1,9 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+
 using SistemaEscolar.Api.DTOs;
 using SistemaEscolar.Domain.Entities;
 using SistemaEscolar.Infrastructure.Data;
-using Microsoft.AspNetCore.Authorization;
 
 namespace SistemaEscolar.Api.Controllers;
 
@@ -22,7 +23,8 @@ public class MatriculasController : ControllerBase
     public async Task<ActionResult<IEnumerable<MatriculaResponseDto>>> GetAll()
     {
         var matriculas = await _context.Matriculas
-            .Include(m => m.Aluno).ThenInclude(a => a.Usuario)
+            .Include(m => m.Aluno)
+                .ThenInclude(a => a.Usuario)
             .Include(m => m.Turma)
             .Select(m => new MatriculaResponseDto
             {
@@ -43,10 +45,14 @@ public class MatriculasController : ControllerBase
         var aluno = await _context.Alunos
             .Include(a => a.Usuario)
             .FirstOrDefaultAsync(a => a.Id == dto.AlunoId);
-        if (aluno is null) return BadRequest("AlunoId informado não existe.");
+
+        if (aluno is null)
+            return BadRequest("AlunoId informado não existe.");
 
         var turma = await _context.Turmas.FindAsync(dto.TurmaId);
-        if (turma is null) return BadRequest("TurmaId informado não existe.");
+
+        if (turma is null)
+            return BadRequest("TurmaId informado não existe.");
 
         var matricula = new Matricula
         {
@@ -57,6 +63,7 @@ public class MatriculasController : ControllerBase
         };
 
         _context.Matriculas.Add(matricula);
+
         await _context.SaveChangesAsync();
 
         var response = new MatriculaResponseDto
@@ -76,7 +83,8 @@ public class MatriculasController : ControllerBase
     public async Task<ActionResult<IEnumerable<MatriculaResponseDto>>> GetPorTurma(Guid turmaId)
     {
         var matriculas = await _context.Matriculas
-            .Include(m => m.Aluno).ThenInclude(a => a.Usuario)
+            .Include(m => m.Aluno)
+                .ThenInclude(a => a.Usuario)
             .Include(m => m.Turma)
             .Where(m => m.TurmaId == turmaId)
             .Select(m => new MatriculaResponseDto

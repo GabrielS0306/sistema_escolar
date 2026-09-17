@@ -14,7 +14,11 @@ import { ListaTurmas } from './pages/admin/ListaTurmas';
 import { ListaProfessores } from './pages/admin/ListaProfessores';
 import { ConsultaFrequencia } from './pages/admin/ConsultaFrequencia';
 import { ConsultaNotas } from './pages/admin/ConsultaNotas';
+<<<<<<< HEAD
 import { TurmaDetalhe } from './pages/professor/TurmaDetalhe';
+=======
+import { TurmaDetalhe } from './pages/professor/TurmaDetalhe';  
+>>>>>>> main
 
 import { DashboardAluno } from './pages/aluno/DashboardAluno';
 import { DashboardProfessor } from './pages/professor/DashboardProfessor';

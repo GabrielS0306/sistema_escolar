@@ -8,6 +8,7 @@ export function TurmaDetalhe() {
     const [searchParams] = useSearchParams();
     const vinculoId = searchParams.get('vinculo');
     const navigate = useNavigate();
+
     const { alunos, carregando, erro } = useAlunosPorTurma(turmaId);
 
     const [presencas, setPresencas] = useState<Record<string, boolean>>({});
@@ -16,7 +17,10 @@ export function TurmaDetalhe() {
     const [erroChamada, setErroChamada] = useState<string | null>(null);
 
     function togglePresenca(alunoId: string) {
-        setPresencas((prev) => ({ ...prev, [alunoId]: !(prev[alunoId] ?? true) }));
+        setPresencas((prev) => ({
+            ...prev,
+            [alunoId]: !(prev[alunoId] ?? true),
+        }));
     }
 
     async function handleRegistrarChamada() {
@@ -25,14 +29,14 @@ export function TurmaDetalhe() {
         setSalvando(true);
         setSucesso(false);
         setErroChamada(null);
-        
+
         try {
             await registrarChamada({
                 professorTurmaDisciplinaId: vinculoId,
                 data: new Date().toISOString(),
                 presencas: alunos.map((a) => ({
-                alunoId: a.alunoId,
-                presente: presencas[a.id] ?? true,
+                    alunoId: a.alunoId,
+                    presente: presencas[a.id] ?? true,
                 })),
             });
 
@@ -46,24 +50,44 @@ export function TurmaDetalhe() {
 
     return (
         <div className="px-12 py-10">
-            <button onClick={() => navigate(-1)} className="text-sm text-slate hover:text-ink mb-6">
+            <button
+                onClick={() => navigate(-1)}
+                className="text-sm text-slate hover:text-ink mb-6"
+            >
                 ← Voltar
             </button>
 
             <p className="text-sm text-slate">Diário de classe</p>
-            <h1 className="font-serif text-3xl text-ink mt-1">Alunos matriculados</h1>
 
-            {carregando && <p className="text-slate mt-10">Carregando...</p>}
-            {erro && <p className="text-red-600 mt-10">Erro: {erro}</p>}
+            <h1 className="font-serif text-3xl text-ink mt-1">
+                Alunos matriculados
+            </h1>
+
+            {carregando && (
+                <p className="text-slate mt-10">
+                    Carregando...
+                </p>
+            )}
+
+            {erro && (
+                <p className="text-red-600 mt-10">
+                    Erro: {erro}
+                </p>
+            )}
 
             {!carregando && !erro && (
                 alunos.length === 0 ? (
-                    <p className="text-sm text-slate mt-10">Nenhum aluno matriculado nessa turma.</p>
+                    <p className="text-sm text-slate mt-10">
+                        Nenhum aluno matriculado nessa turma.
+                    </p>
                 ) : (
                     <>
                         {erroChamada && (
-                            <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2 mt-8">{erroChamada}</p>
+                            <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2 mt-8">
+                                {erroChamada}
+                            </p>
                         )}
+
                         {sucesso && (
                             <p className="text-sm text-ink bg-gold/10 border border-gold/30 rounded px-3 py-2 mt-8">
                                 Chamada registrada com sucesso.
@@ -73,17 +97,34 @@ export function TurmaDetalhe() {
                         <table className="w-full mt-8 border-t border-ink/10">
                             <thead>
                                 <tr className="border-b border-ink/10 text-left">
-                                    <th className="py-3 text-sm font-normal text-slate">Nome</th>
-                                    <th className="py-3 text-sm font-normal text-slate">Matrícula</th>
-                                    <th className="py-3 text-sm font-normal text-slate">Presente hoje</th>
+                                    <th className="py-3 text-sm font-normal text-slate">
+                                        Nome
+                                    </th>
+
+                                    <th className="py-3 text-sm font-normal text-slate">
+                                        Matrícula
+                                    </th>
+
+                                    <th className="py-3 text-sm font-normal text-slate">
+                                        Presente hoje
+                                    </th>
                                 </tr>
                             </thead>
 
                             <tbody>
                                 {alunos.map((a) => (
-                                    <tr key={a.id} className="border-b border-ink/10">
-                                        <td className="py-3 text-ink">{a.nomeAluno}</td>
-                                        <td className="py-3 text-slate">{a.matricula}</td>
+                                    <tr
+                                        key={a.id}
+                                        className="border-b border-ink/10 hover:bg-ink/5 transition-colors"
+                                    >
+                                        <td className="py-3 text-ink">
+                                            {a.nomeAluno}
+                                        </td>
+
+                                        <td className="py-3 text-slate">
+                                            {a.matricula}
+                                        </td>
+
                                         <td className="py-3">
                                             <input
                                                 type="checkbox"
@@ -93,7 +134,7 @@ export function TurmaDetalhe() {
                                             />
                                         </td>
                                     </tr>
-                                ))} 
+                                ))}
                             </tbody>
                         </table>
 
@@ -102,7 +143,9 @@ export function TurmaDetalhe() {
                             disabled={salvando || !vinculoId}
                             className="bg-ink text-paper rounded px-5 py-2.5 text-sm font-medium hover:bg-ink/90 disabled:opacity-50 mt-6"
                         >
-                            {salvando ? 'Registrando...' : 'Registrar chamada de hoje'}
+                            {salvando
+                                ? 'Registrando...'
+                                : 'Registrar chamada de hoje'}
                         </button>
                     </>
                 )
