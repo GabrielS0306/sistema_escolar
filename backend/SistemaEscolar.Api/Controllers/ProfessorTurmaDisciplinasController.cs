@@ -91,6 +91,7 @@ public class ProfessorTurmaDisciplinasController : ControllerBase
             {
                 Id = v.Id,
                 NomeProfessor = v.Professor.Usuario.Nome,
+                TurmaId = v.TurmaId,
                 Turma = v.Turma.Nome,
                 Disciplina = v.Disciplina.Nome
             })

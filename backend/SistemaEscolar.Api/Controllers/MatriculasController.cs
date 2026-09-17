@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SistemaEscolar.Api.DTOs;
 using SistemaEscolar.Domain.Entities;
 using SistemaEscolar.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SistemaEscolar.Api.Controllers;
 
@@ -68,5 +69,27 @@ public class MatriculasController : ControllerBase
         };
 
         return CreatedAtAction(nameof(GetAll), response);
+    }
+
+    [HttpGet("turma/{turmaId}")]
+    [Authorize(Roles = "Admin,Coordenador,Professor")]
+    public async Task<ActionResult<IEnumerable<MatriculaResponseDto>>> GetPorTurma(Guid turmaId)
+    {
+        var matriculas = await _context.Matriculas
+            .Include(m => m.Aluno).ThenInclude(a => a.Usuario)
+            .Include(m => m.Turma)
+            .Where(m => m.TurmaId == turmaId)
+            .Select(m => new MatriculaResponseDto
+            {
+                Id = m.Id,
+                AlunoId = m.AlunoId,
+                NomeAluno = m.Aluno.Usuario.Nome,
+                Matricula = m.Aluno.Matricula,
+                Turma = m.Turma.Nome,
+                DataMatricula = m.DataMatricula
+            })
+            .ToListAsync();
+
+        return Ok(matriculas);
     }
 }
