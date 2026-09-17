@@ -2,6 +2,7 @@ import { apiGet } from './api';
 
 export interface MatriculaResumo {
     id: string;
+    alunoId: string;
     nomeAluno: string;
     matricula: string;
     turma: string;

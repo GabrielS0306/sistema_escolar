@@ -8,6 +8,10 @@ export function useAlunosPorTurma(turmaId: string | undefined) {
 
     useEffect(() => {
         if (!turmaId) return;
+<<<<<<< HEAD
+
+=======
+>>>>>>> main
         let cancelado = false;
 
         (async () => {
@@ -22,7 +26,11 @@ export function useAlunosPorTurma(turmaId: string | undefined) {
                 if (!cancelado) setCarregando(false);
             }
         })();
+<<<<<<< HEAD
+
+=======
         
+>>>>>>> main
         return () => { cancelado = true; };
     }, [turmaId]);
 
