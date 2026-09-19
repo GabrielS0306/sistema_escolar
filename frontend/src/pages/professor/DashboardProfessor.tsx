@@ -19,7 +19,7 @@ export function DashboardProfessor() {
                     {vinculos.map((v) => (
                         <Link
                             key={v.id}
-                            to={`/dashboard/professor/turma/${v.turmaId}/alunos?vinculo=${v.id}`}
+                            to={`/dashboard/professor/turma/${v.turmaId}?vinculo=${v.id}`}
                             className="block py-4 group"
                         >
                             <p className="text-ink group-hover:text-gold transition-colors">{v.disciplina}</p>

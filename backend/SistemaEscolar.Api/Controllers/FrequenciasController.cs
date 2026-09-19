@@ -150,24 +150,4 @@ public class FrequenciasController : ControllerBase
 
         return Ok(new { importadas = response, erros });
     }
-
-    [HttpGet("vinculo/{professorTurmaDisciplinaId}")]
-    [Authorize(Roles = "Admin,Coordenador,Professor")]
-    public async Task<ActionResult<IEnumerable<FrequenciaResponseDto>>> GetPorVinculo(Guid professorTurmaDisciplinaId)
-    {
-        var frequencias = await _context.Frequencias
-            .Include(f => f.Aluno).ThenInclude(a => a.Usuario)
-            .Where(f => f.ProfessorTurmaDisciplinaId == professorTurmaDisciplinaId)
-            .OrderByDescending(f => f.Data)
-            .Select(f => new FrequenciaResponseDto
-            {
-                Id = f.Id,
-                NomeAluno = f.Aluno.Usuario.Nome,
-                Data = f.Data,
-                Presente = f.Presente
-            })
-            .ToListAsync();
-
-        return Ok(frequencias);
-    }
 }
