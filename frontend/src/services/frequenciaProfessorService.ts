@@ -13,8 +13,4 @@ interface RegistrarChamadaDto {
 
 export function registrarChamada(dto: RegistrarChamadaDto) {
     return apiPost('/Frequencias/registrar', dto);
-<<<<<<< HEAD
-}   
-=======
 }
->>>>>>> main
