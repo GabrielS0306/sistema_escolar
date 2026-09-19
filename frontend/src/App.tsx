@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { LayoutAluno } from './components/LayoutAluno';
 import { LayoutProfessor } from './components/LayoutProfessor';
@@ -14,8 +14,6 @@ import { ListaTurmas } from './pages/admin/ListaTurmas';
 import { ListaProfessores } from './pages/admin/ListaProfessores';
 import { ConsultaFrequencia } from './pages/admin/ConsultaFrequencia';
 import { ConsultaNotas } from './pages/admin/ConsultaNotas';
-import { AbaAlunos } from './pages/professor/AbaAlunos';
-import { AbaFrequencia } from './pages/professor/AbaFrequencia';
 
 import { TurmaDetalhe } from './pages/professor/TurmaDetalhe';
 import { DashboardAluno } from './pages/aluno/DashboardAluno';
@@ -24,11 +22,6 @@ import { DashboardCoordenador } from './pages/coordenador/DashboardCoordenador';
 import { DashboardResponsavel } from './pages/responsavel/DashboardResponsavel';
 import { DashboardFuncionario } from './pages/funcionario/DashboardFuncionario';
 import { DashboardSemPerfil } from './pages/DashboardSemPerfil';
-
-function RedirecionarComVinculo() {
-  const [searchParams] = useSearchParams();
-  return <Navigate to={`alunos?${searchParams.toString()}`} replace />;
-}
 
 function App() {
   return (
@@ -45,11 +38,7 @@ function App() {
           </Route>
           <Route path="professor" element={<LayoutProfessor />}>
             <Route index element={<DashboardProfessor />} />
-            <Route path="turma/:turmaId" element={<TurmaDetalhe />}>
-              <Route index element={<RedirecionarComVinculo />} />
-              <Route path="alunos" element={<AbaAlunos />} />
-              <Route path="frequencia" element={<AbaFrequencia />} />
-            </Route>
+            <Route path="turma/:turmaId" element={<TurmaDetalhe />} />
           </Route>
           <Route path="coordenador" element={<DashboardCoordenador />} />
           <Route path="responsavel" element={<DashboardResponsavel />} />
