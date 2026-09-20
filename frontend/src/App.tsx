@@ -14,9 +14,11 @@ import { ListaTurmas } from './pages/admin/ListaTurmas';
 import { ListaProfessores } from './pages/admin/ListaProfessores';
 import { ConsultaFrequencia } from './pages/admin/ConsultaFrequencia';
 import { ConsultaNotas } from './pages/admin/ConsultaNotas';
+
 import { AbaAlunos } from './pages/professor/AbaAlunos';
 import { AbaFrequencia } from './pages/professor/AbaFrequencia';
 import { AbaNotas } from './pages/professor/AbaNotas';
+import { AbaObservacoes } from './pages/professor/AbaObservacoes';
 
 import { TurmaDetalhe } from './pages/professor/TurmaDetalhe';
 import { DashboardAluno } from './pages/aluno/DashboardAluno';
@@ -51,6 +53,7 @@ function App() {
               <Route path="alunos" element={<AbaAlunos />} />
               <Route path="frequencia" element={<AbaFrequencia />} />
               <Route path="notas" element={<AbaNotas />} />
+              <Route path="observacoes" element={<AbaObservacoes />} />
             </Route>
           </Route>
           <Route path="coordenador" element={<DashboardCoordenador />} />
