@@ -217,4 +217,26 @@ public class NotasController : ControllerBase
 
         return Ok(new { importadas = response, erros });
     }
+
+    [HttpGet("vinculo/{professorTurmaDisciplinaId}")]
+    [Authorize(Roles = "Admin,Coordenador,Professor")]
+    public async Task<ActionResult<IEnumerable<NotaComAlunoResponseDto>>> GetPorVinculo(Guid professorTurmaDisciplinaId)
+    {
+        var notas = await _context.Notas
+            .Include(n => n.Avaliacao)
+            .Include(n => n.Aluno).ThenInclude(a => a.Usuario)
+            .Where(n => n.Avaliacao.ProfessorTurmaDisciplinaId == professorTurmaDisciplinaId)
+            .OrderByDescending(n => n.Avaliacao.Data)
+            .Select(n => new NotaComAlunoResponseDto
+            {
+                Id = n.Id,
+                NomeAluno = n.Aluno.Usuario.Nome,
+                Valor = n.Valor,
+                Bimestre = n.Avaliacao.Bimestre,
+                NomeAvaliacao = n.Avaliacao.Nome
+            })
+            .ToListAsync();
+
+        return Ok(notas);
+    }
 }
