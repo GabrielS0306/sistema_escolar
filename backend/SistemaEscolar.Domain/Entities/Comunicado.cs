@@ -20,5 +20,9 @@ public class Comunicado
     public Guid? TurmaId { get; set; }
     public Turma? Turma { get; set; }
 
+    // Nullable só porque comunicados antigos foram criados sem autor.
+    public Guid? AutorUsuarioId { get; set; }
+    public Usuario? AutorUsuario { get; set; }
+
     public DateTime DataEnvio { get; set; } = DateTime.UtcNow;
 }

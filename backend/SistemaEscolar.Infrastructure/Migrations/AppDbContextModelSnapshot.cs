@@ -80,6 +80,9 @@ namespace SistemaEscolar.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("AutorUsuarioId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("DataEnvio")
                         .HasColumnType("timestamp with time zone");
 
@@ -98,6 +101,8 @@ namespace SistemaEscolar.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AutorUsuarioId");
 
                     b.HasIndex("TurmaId");
 
@@ -577,9 +582,15 @@ namespace SistemaEscolar.Infrastructure.Migrations
 
             modelBuilder.Entity("SistemaEscolar.Domain.Entities.Comunicado", b =>
                 {
+                    b.HasOne("SistemaEscolar.Domain.Entities.Usuario", "AutorUsuario")
+                        .WithMany()
+                        .HasForeignKey("AutorUsuarioId");
+
                     b.HasOne("SistemaEscolar.Domain.Entities.Turma", "Turma")
                         .WithMany()
                         .HasForeignKey("TurmaId");
+
+                    b.Navigation("AutorUsuario");
 
                     b.Navigation("Turma");
                 });

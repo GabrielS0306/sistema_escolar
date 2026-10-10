@@ -27,6 +27,10 @@ const MENU_SECOES = [
             { path: '/admin/conselhos', label: 'Conselho de classe', icone: 'conselho' },
         ],
     },
+    {
+        titulo: 'Comunicação',
+        itens: [{ path: '/admin/comunicados', label: 'Comunicados', icone: 'comunicados' }],
+    },
 ];
 
 function Icone({ nome }: { nome: string }) {
@@ -92,6 +96,12 @@ function Icone({ nome }: { nome: string }) {
                     <path d="M4 7h16"/>
                     <path d="M7 7l-3 6a3 3 0 0 0 6 0L7 7Z"/>
                     <path d="M17 7l-3 6a3 3 0 0 0 6 0l-3-6Z"/>
+                </svg>;
+        case 'comunicados':
+            return <svg {...props}>
+                    <path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1Z"/>
+                    <path d="M16 9a3 3 0 0 1 0 6"/>
+                    <path d="M19 6a7 7 0 0 1 0 12"/>
                 </svg>;
         default:
             return null;
