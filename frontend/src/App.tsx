@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-r
 import { Layout } from './components/Layout';
 import { LayoutAluno } from './components/LayoutAluno';
 import { LayoutProfessor } from './components/LayoutProfessor';
+import { LayoutResponsavel } from './components/LayoutResponsavel';
 
 import { Login } from './pages/auth/Login';
 import { SelecionarPapel } from './pages/auth/SelecionarPapel';
@@ -57,7 +58,9 @@ function App() {
             </Route>
           </Route>
           <Route path="coordenador" element={<DashboardCoordenador />} />
-          <Route path="responsavel" element={<DashboardResponsavel />} />
+          <Route path="responsavel" element={<LayoutResponsavel />}>
+            <Route index element={<DashboardResponsavel />} />
+          </Route>
           <Route path="funcionario" element={<DashboardFuncionario />} />
           <Route path="sem-perfil" element={<DashboardSemPerfil />} />
         </Route>

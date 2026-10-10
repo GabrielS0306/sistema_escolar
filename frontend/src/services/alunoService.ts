@@ -9,3 +9,7 @@ export function getAlunos(): Promise<Aluno[]> {
 export function getMeuResumo(): Promise<ResumoAluno> {
     return apiGet<ResumoAluno>('/Alunos/me/resumo');
 }
+
+export function getResumoAluno(alunoId: string): Promise<ResumoAluno> {
+    return apiGet<ResumoAluno>(`/Alunos/${alunoId}/resumo`);
+}
