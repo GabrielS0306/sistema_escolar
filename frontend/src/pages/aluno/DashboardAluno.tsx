@@ -1,5 +1,6 @@
 import { useMeuResumo } from '../../hooks/useMeuResumo';
 import { ResumoAlunoPainel } from '../../components/ResumoAlunoPainel';
+import { ComunicadosRecentes } from '../../components/ComunicadosRecentes';
 
 export function DashboardAluno() {
     const { resumo, carregando, erro } = useMeuResumo();
@@ -15,6 +16,8 @@ export function DashboardAluno() {
             <p className="text-sm text-slate mt-1">Matrícula {resumo.matricula}</p>
 
             <ResumoAlunoPainel resumo={resumo} />
+
+            <ComunicadosRecentes />
         </div>
     );
 }

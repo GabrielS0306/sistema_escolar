@@ -3,6 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useMeusAlunos } from '../../hooks/useMeusAlunos';
 import { useResumoAluno } from '../../hooks/useResumoAluno';
 import { ResumoAlunoPainel } from '../../components/ResumoAlunoPainel';
+import { ComunicadosRecentes } from '../../components/ComunicadosRecentes';
 
 export function DashboardResponsavel() {
     const { sessao } = useAuth();
@@ -60,6 +61,8 @@ export function DashboardResponsavel() {
                     )}
                 </>
             )}
+
+            <ComunicadosRecentes />
         </div>
     );
 }

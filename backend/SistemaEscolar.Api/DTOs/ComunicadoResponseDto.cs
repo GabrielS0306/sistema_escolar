@@ -9,5 +9,6 @@ public class ComunicadoResponseDto
     public string Mensagem { get; set; } = string.Empty;
     public PublicoAlvoComunicado PublicoAlvo { get; set; }
     public string? Turma { get; set; }
+    public string? Autor { get; set; }
     public DateTime DataEnvio { get; set; }
 }
