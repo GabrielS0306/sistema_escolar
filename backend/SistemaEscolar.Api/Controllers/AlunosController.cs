@@ -82,6 +82,26 @@ public class AlunosController : ControllerBase
     [HttpGet("{id}/resumo")]
     public async Task<ActionResult<ResumoAlunoResponseDto>> GetResumo(Guid id)
     {
+        var ehEquipe = User.IsInRole("Admin") || User.IsInRole("Coordenador")
+            || User.IsInRole("Professor") || User.IsInRole("Funcionario");
+
+        if (!ehEquipe)
+        {
+            var usuarioId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+
+            var ehResponsavelDoAluno = await _context.ResponsaveisAlunos
+                .AnyAsync(ra => ra.AlunoId == id && ra.Responsavel.UsuarioId == usuarioId);
+            var ehOProprioAluno = await _context.Alunos
+                .AnyAsync(a => a.Id == id && a.UsuarioId == usuarioId);
+
+            if (!ehResponsavelDoAluno && !ehOProprioAluno) return Forbid();
+        }
+
+        return await MontarResumo(id);
+    }
+
+    private async Task<ActionResult<ResumoAlunoResponseDto>> MontarResumo(Guid id)
+    {
         var aluno = await _context.Alunos
             .Include(a => a.Usuario)
             .FirstOrDefaultAsync(a => a.Id == id);
@@ -169,6 +189,6 @@ public class AlunosController : ControllerBase
 
         if (aluno is null) return NotFound();
 
-        return await GetResumo(aluno.Id);
+        return await MontarResumo(aluno.Id);
     }
 }

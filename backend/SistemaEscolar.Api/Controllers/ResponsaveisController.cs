@@ -37,6 +37,9 @@ public class ResponsaveisController : ControllerBase
         var usuario = await _context.Usuarios.FindAsync(dto.UsuarioId);
         if (usuario is null) return BadRequest("UsuarioId informado não existe.");
 
+        var jaEhResponsavel = await _context.Responsaveis.AnyAsync(r => r.UsuarioId == dto.UsuarioId);
+        if (jaEhResponsavel) return BadRequest("Esse usuário já é responsável.");
+
         var responsavel = new Responsavel { Id = Guid.NewGuid(), UsuarioId = dto.UsuarioId };
 
         _context.Responsaveis.Add(responsavel);
@@ -81,6 +84,26 @@ public class ResponsaveisController : ControllerBase
             .Include(ra => ra.Aluno).ThenInclude(a => a.Usuario)
             .Where(ra => ra.ResponsavelId == id)
             .Select(ra => new { ra.Aluno.Id, Nome = ra.Aluno.Usuario.Nome, ra.Aluno.Matricula })
+            .ToListAsync();
+
+        return Ok(alunos);
+    }
+
+    [HttpGet("me/alunos")]
+    [Authorize(Roles = "Responsavel")]
+    public async Task<ActionResult<IEnumerable<AlunoResponseDto>>> GetMeusAlunos()
+    {
+        var usuarioId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+
+        var alunos = await _context.ResponsaveisAlunos
+            .Where(ra => ra.Responsavel.UsuarioId == usuarioId)
+            .OrderBy(ra => ra.Aluno.Usuario.Nome)
+            .Select(ra => new AlunoResponseDto
+            {
+                Id = ra.Aluno.Id,
+                Matricula = ra.Aluno.Matricula,
+                NomeUsuario = ra.Aluno.Usuario.Nome
+            })
             .ToListAsync();
 
         return Ok(alunos);

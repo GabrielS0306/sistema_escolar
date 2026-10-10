@@ -23,12 +23,18 @@ function montarHeaders(comJson: boolean): HeadersInit {
     return headers;
 }
 
+// Alguns endpoints respondem 200/204 sem corpo (ex.: vincular-aluno); response.json() quebraria nesses casos.
+async function lerResposta<T>(response: Response): Promise<T> {
+    if (!response.ok) throw new Error(`Erro na requisição: ${response.status}`);
+
+    const texto = await response.text();
+    return (texto ? JSON.parse(texto) : undefined) as T;
+}
+
 export async function apiGet<T>(endpoint: string): Promise<T> {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, { headers: montarHeaders(false) });
 
-    if (!response.ok) throw new Error(`Erro na requisição: ${response.status}`);
-
-    return response.json();
+    return lerResposta<T>(response);
 }
 
 export async function apiPost<T>(endpoint: string, body: unknown): Promise<T> {
@@ -38,9 +44,7 @@ export async function apiPost<T>(endpoint: string, body: unknown): Promise<T> {
         body: JSON.stringify(body),
     });
 
-    if (!response.ok) throw new Error(`Erro na requisição: ${response.status}`);
-
-    return response.json();
+    return lerResposta<T>(response);
 }
 
 export async function apiPostForm<T>(endpoint: string, formData: FormData): Promise<T> {
@@ -50,9 +54,7 @@ export async function apiPostForm<T>(endpoint: string, formData: FormData): Prom
         body: formData,
     });
 
-    if (!response.ok) throw new Error(`Erro na requisição: ${response.status}`);
-
-    return response.json();
+    return lerResposta<T>(response);
 }
 
 export async function apiPutForm<T>(endpoint: string, formData: FormData): Promise<T> {
@@ -62,7 +64,5 @@ export async function apiPutForm<T>(endpoint: string, formData: FormData): Promi
         body: formData,
     });
 
-    if (!response.ok) throw new Error(`Erro na requisição: ${response.status}`);
-
-    return response.json();
+    return lerResposta<T>(response);
 }
