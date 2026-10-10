@@ -33,6 +33,17 @@ export function LayoutProfessor() {
                     >
                         Minhas turmas
                     </Link>
+
+                    <Link
+                        to="/dashboard/professor/conselhos"
+                        className={`block px-3 py-2 text-sm border-l-2 mb-1 transition-colors ${
+                        location.pathname === '/dashboard/professor/conselhos'
+                            ? 'border-gold text-paper bg-white/5'
+                            : 'border-transparent text-paper/70 hover:text-paper hover:border-paper/30'
+                        }`}
+                    >
+                        Conselho de classe
+                    </Link>
                 </nav>
 
                 <div className="px-6 py-5 border-t border-white/10 flex items-center gap-3">
