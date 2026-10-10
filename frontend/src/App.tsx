@@ -15,6 +15,7 @@ import { ListaTurmas } from './pages/admin/ListaTurmas';
 import { ListaProfessores } from './pages/admin/ListaProfessores';
 import { ConsultaFrequencia } from './pages/admin/ConsultaFrequencia';
 import { ConsultaNotas } from './pages/admin/ConsultaNotas';
+import { ConselhosClasse } from './pages/admin/ConselhosClasse';
 
 import { AbaAlunos } from './pages/professor/AbaAlunos';
 import { AbaFrequencia } from './pages/professor/AbaFrequencia';
@@ -24,6 +25,7 @@ import { AbaObservacoes } from './pages/professor/AbaObservacoes';
 import { TurmaDetalhe } from './pages/professor/TurmaDetalhe';
 import { DashboardAluno } from './pages/aluno/DashboardAluno';
 import { DashboardProfessor } from './pages/professor/DashboardProfessor';
+import { ConselhosProfessor } from './pages/professor/ConselhosProfessor';
 import { DashboardCoordenador } from './pages/coordenador/DashboardCoordenador';
 import { DashboardResponsavel } from './pages/responsavel/DashboardResponsavel';
 import { DashboardFuncionario } from './pages/funcionario/DashboardFuncionario';
@@ -49,6 +51,7 @@ function App() {
           </Route>
           <Route path="professor" element={<LayoutProfessor />}>
             <Route index element={<DashboardProfessor />} />
+            <Route path="conselhos" element={<ConselhosProfessor />} />
             <Route path="turma/:turmaId" element={<TurmaDetalhe />}>
               <Route index element={<RedirecionarComVinculo />} />
               <Route path="alunos" element={<AbaAlunos />} />
@@ -75,6 +78,7 @@ function App() {
           <Route path="professores" element={<ListaProfessores />} />
           <Route path="frequencia" element={<ConsultaFrequencia />} />
           <Route path="notas" element={<ConsultaNotas />} />
+          <Route path="conselhos" element={<ConselhosClasse />} />
         </Route>
       </Routes>
     </BrowserRouter>

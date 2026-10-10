@@ -84,18 +84,22 @@ public class SituacoesDisciplinaController : ControllerBase
 
     private async Task VerificarNecessidadeConselho(Guid alunoId, Guid turmaId)
     {
+        var turma = await _context.Turmas.FindAsync(turmaId);
+        if (turma is null) return;
+
+        // Só contam as reprovações do mesmo ano letivo da turma.
         var totalReprovadas = await _context.SituacoesDisciplina
-            .CountAsync(s => s.AlunoId == alunoId && s.Status == StatusDisciplina.Reprovado);
+            .CountAsync(s => s.AlunoId == alunoId
+                && s.Status == StatusDisciplina.Reprovado
+                && s.ProfessorTurmaDisciplina.Turma.AnoLetivoId == turma.AnoLetivoId);
 
         if (totalReprovadas < 3) return;
 
+        // Um conselho por aluno por ano letivo — mesmo que o anterior já tenha sido encerrado.
         var jaExisteConselho = await _context.ConselhosClasse
-            .AnyAsync(c => c.AlunoId == alunoId && c.Resultado == ResultadoConselho.PendenteVotacao);
+            .AnyAsync(c => c.AlunoId == alunoId && c.AnoLetivoId == turma.AnoLetivoId);
 
-        if (jaExisteConselho) return; // já existe um conselho pendente, não duplica
-
-        var turma = await _context.Turmas.FindAsync(turmaId);
-        if (turma is null) return;
+        if (jaExisteConselho) return;
 
         var conselho = new ConselhoClasse
         {
