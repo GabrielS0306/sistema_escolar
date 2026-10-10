@@ -382,7 +382,8 @@ namespace SistemaEscolar.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UsuarioId");
+                    b.HasIndex("UsuarioId")
+                        .IsUnique();
 
                     b.ToTable("Responsaveis");
                 });
@@ -429,7 +430,8 @@ namespace SistemaEscolar.Infrastructure.Migrations
 
                     b.HasIndex("AlunoId");
 
-                    b.HasIndex("ResponsavelId");
+                    b.HasIndex("ResponsavelId", "AlunoId")
+                        .IsUnique();
 
                     b.ToTable("ResponsaveisAlunos");
                 });

@@ -19,6 +19,15 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(d => d.RegistradoPorUsuarioId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Um usuário tem no máximo um perfil de Responsável, e cada vínculo responsável-aluno existe uma vez só.
+        modelBuilder.Entity<Responsavel>()
+            .HasIndex(r => r.UsuarioId)
+            .IsUnique();
+
+        modelBuilder.Entity<ResponsavelAluno>()
+            .HasIndex(ra => new { ra.ResponsavelId, ra.AlunoId })
+            .IsUnique();
     }
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
