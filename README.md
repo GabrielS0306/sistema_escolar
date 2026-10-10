@@ -1,268 +1,191 @@
 # Sistema de Gestão Escolar
 
-Sistema de gestão escolar desenvolvido para centralizar e organizar informações acadêmicas, administrativas e disciplinares. A aplicação possui uma API em ASP.NET Core e uma interface web em React/TypeScript, com autenticação, controle de acesso por perfil, gerenciamento de alunos e professores, notas, frequência, ocorrências, comunicados e conselho de classe.
+Sistema de gestão escolar full-stack para centralizar informações acadêmicas, administrativas e disciplinares. É composto por uma API em **ASP.NET Core** e uma interface web em **React + TypeScript**. Tem autenticação com múltiplos perfis por usuário, controle de acesso por papel, notas por bimestre com cálculo automático de situação, frequência, ocorrências, conselho de classe, comunicados e documentos.
 
-> Projeto em desenvolvimento, com novas funcionalidades sendo adicionadas gradualmente.
+> Projeto de portfólio em desenvolvimento ativo. Novas funcionalidades entram aos poucos.
+
+## Sumário
+
+- [Tecnologias](#tecnologias)
+- [Arquitetura](#arquitetura)
+- [Funcionalidades](#funcionalidades)
+- [Regras acadêmicas](#regras-acadêmicas)
+- [Como executar localmente](#como-executar-localmente)
+- [API](#api)
+- [Segurança](#segurança)
+- [Problemas comuns](#problemas-comuns)
+- [Status e próximos passos](#status-e-próximos-passos)
 
 ## Tecnologias
 
 ### Backend
 
-* C# / .NET 10
-* ASP.NET Core Web API
-* Entity Framework Core 10
-* Npgsql / PostgreSQL
-* Supabase
-* JWT Bearer Authentication
-* BCrypt.Net para hash de senhas
-* Scalar para documentação e testes da API
-* ClosedXML para leitura de planilhas
+- C# / .NET 10, ASP.NET Core Web API (Controllers)
+- Entity Framework Core 10 + Npgsql (PostgreSQL hospedado no Supabase)
+- JWT Bearer + BCrypt.Net-Next, **sem** ASP.NET Identity
+- Supabase Storage (`supabase-csharp`) para fotos de perfil e documentos
+- OpenAPI nativo + [Scalar](https://scalar.com/) para documentação interativa
+- ClosedXML (.xlsx) e CSV para importação de planilhas
 
 ### Frontend
 
-* React 19
-* TypeScript
-* Vite
-* React Router DOM
-* Tailwind CSS 4
-* ESLint
+- React 19 + TypeScript
+- Vite
+- React Router DOM
+- Tailwind CSS 4
+- ESLint
 
 ## Arquitetura
 
-O backend está organizado em uma estrutura separada por responsabilidades:
+Monorepo com o backend dividido em camadas. As dependências seguem uma única direção, **Api → Infrastructure → Domain**. O Domain não conhece EF Core nem ASP.NET.
 
 ```text
 sistema_escolar/
 ├── backend/
-│   ├── SistemaEscolar.Domain/
-│   │   └── Entidades e regras de domínio
-│   │
-│   ├── SistemaEscolar.Infrastructure/
-│   │   ├── AppDbContext
-│   │   └── Migrations
-│   │
-│   └── SistemaEscolar.Api/
-│       ├── Controllers
-│       ├── DTOs
-│       ├── Services
-│       └── Program.cs
+│   ├── SistemaEscolar.Domain/          # Entidades e enums (sem dependências)
+│   │   └── Entities/Perfis/            # Papéis de usuário: Aluno, Professor, Coordenador...
+│   ├── SistemaEscolar.Infrastructure/  # AppDbContext e Migrations
+│   ├── SistemaEscolar.Api/             # Controllers, DTOs, Services, Program.cs
+│   └── SistemaEscolar.slnx
 │
 └── frontend/
     └── src/
-        ├── components/
-        ├── hooks/
-        ├── pages/
-        │   ├── admin/
-        │   ├── aluno/
-        │   ├── auth/
-        │   ├── coordenador/
-        │   ├── funcionario/
-        │   ├── professor/
-        │   └── responsavel/
-        ├── services/
-        ├── types/
-        ├── App.tsx
-        └── main.tsx
+        ├── types/        # Tipos TypeScript espelhando os DTOs da API
+        ├── services/     # Chamadas HTTP (api.ts centraliza fetch + token)
+        ├── hooks/        # Hooks de dados (carregamento, erro, recarregar)
+        ├── components/   # Layouts por área, Modal, abas etc.
+        └── pages/        # Uma subpasta por papel
+            ├── auth/  admin/  aluno/  professor/
+            └── coordenador/  responsavel/  funcionario/
 ```
 
-## Principais funcionalidades
+### Modelo de usuários
+
+Um `Usuario` guarda os dados pessoais (nome, e-mail, senha, CPF, foto…) e pode ter **vários perfis ao mesmo tempo**: Admin, Coordenador, Professor, Funcionário, Aluno e Responsável. Quem tem mais de um perfil escolhe no login com qual quer entrar.
+
+## Funcionalidades
 
 ### Autenticação e permissões
 
-* [x] Autenticação utilizando JWT
-* [x] Proteção das rotas da API
-* [x] Controle de acesso por perfil
-* [x] Perfis de administrador, coordenador, professor, funcionário, aluno e responsável
-* [x] Redirecionamento para áreas específicas de acordo com o perfil
+- [x] Login com JWT, com um claim por papel do usuário
+- [x] Seleção de papel após o login para usuários com múltiplos perfis
+- [x] Toda a API exige autenticação por padrão (política de fallback)
+- [x] Permissões por papel em cada ação sensível
+- [x] Cadastro de usuários restrito a Admin/Coordenador. Não há registro público.
 
-### Gestão acadêmica
+### Usuários e perfis
 
-* [x] Cadastro de usuários
-* [x] Cadastro de alunos
-* [x] Cadastro de professores
-* [x] Cadastro de funcionários
-* [x] Cadastro de coordenadores
-* [x] Cadastro de responsáveis
-* [x] Cadastro de anos letivos
-* [x] Cadastro e gerenciamento de turmas
-* [x] Matrículas
-* [x] Cadastro de disciplinas
-* [x] Vínculo entre professor, turma e disciplina
+- [x] Cadastro em 2 etapas: dados gerais + foto, depois os dados do perfil (ex.: matrícula do aluno)
+- [x] Upload de foto de perfil (Supabase Storage, bucket público)
+- [x] Gestão de usuários pelo Admin (listar, editar)
+- [x] Edição do próprio perfil (modal)
+- [x] Histórico de documentos do usuário (atestados, comprovantes…) em bucket privado
+- [x] Vínculo entre responsáveis e alunos
+
+### Estrutura acadêmica
+
+- [x] Anos letivos, turmas (com turno), disciplinas e matrículas
+- [x] Vínculo professor × turma × disciplina
 
 ### Notas e avaliações
 
-* [x] Cadastro de avaliações
-* [x] Lançamento de notas
-* [x] Lançamento de notas para múltiplos alunos
-* [x] Consulta de notas por aluno
-* [x] Organização das avaliações por bimestre
-* [x] Importação de notas através de planilha
-* [x] Validação de matrícula e valores durante a importação
-* [x] Registro dos erros encontrados durante a importação
-* [x] Cálculo automático da média final quando os quatro bimestres possuem os tipos de avaliação obrigatórios
-* [x] Identificação automática de aprovado ou recuperação
-* [x] Registro de prova final para alunos em recuperação
-* [x] Atualização da situação para aprovado ou reprovado após a prova final
+- [x] Avaliações por bimestre: Comportamento, Atividade e Prova Bimestral
+- [x] Lançamento de notas em lote
+- [x] Importação de notas por planilha (.xlsx/.csv), com relatório de erros por linha
+- [x] Cálculo automático da situação da disciplina
+- [x] Prova final para alunos em recuperação
 
 ### Frequência
 
-* [x] Registro de frequência
-* [x] Chamada em lote por turma
-* [x] Consulta de frequência
-* [ ] Integração com a plataforma governamental de registro oficial de frequência
+- [x] Chamada em lote por turma
+- [x] Importação de frequência por planilha
+- [x] Consulta de frequência
+- [ ] Integração com a plataforma governamental de frequência oficial
 
-### Área disciplinar
+### Ocorrências, conselho de classe e comunicados
 
-* [x] Registro de ocorrências disciplinares
-* [x] Consulta do histórico de ocorrências por aluno
-* [x] Registro do usuário responsável pela ocorrência
-* [x] Controle de situação disciplinar do aluno
+- [x] Ocorrências (disciplinar, saúde, atraso, elogio, outro), com registro de quem lançou
+- [x] Conselho de classe criado automaticamente, com votação dos professores e bloqueio de voto duplicado
+- [x] Encerramento do conselho por Admin/Coordenador
+- [x] Comunicados com público-alvo (escola toda, turma, professores, alunos)
 
-### Conselho de classe
+### Telas (frontend)
 
-* [x] Criação automática de conselho de classe quando atingido o critério definido no sistema
-* [x] Registro de votos dos professores
-* [x] Impedimento de voto duplicado para o mesmo professor
-* [x] Encerramento do conselho por administrador ou coordenador
-* [x] Registro do resultado do conselho
+- [x] Login e seleção de papel
+- [x] **Admin**: dashboard, usuários, alunos, professores, turmas, consulta de notas e frequência
+- [x] **Aluno**: dashboard com resumo de notas, frequência e situação
+- [x] **Professor**: minhas turmas + hub da turma com abas **Alunos**, **Frequência**, **Notas** e **Observações**
+- [ ] Dashboards de **Coordenador**, **Responsável** e **Funcionário** (hoje são placeholders)
+- [ ] Telas de Conselho de Classe e Comunicados
 
-### Responsáveis
+## Regras acadêmicas
 
-* [x] Cadastro de responsáveis
-* [x] Vinculação de responsáveis aos alunos
-* [x] Consulta dos alunos vinculados ao responsável
-* [ ] Dashboard completo do responsável
-* [ ] Notificações para responsáveis
-
-### Comunicados
-
-* [x] Criação de comunicados
-* [x] Definição de público-alvo
-* [x] Comunicados direcionados para turmas
-* [x] Listagem dos comunicados por data de envio
-
-### Frontend
-
-* [x] Interface React/TypeScript
-* [x] Roteamento com React Router
-* [x] Áreas separadas por perfil de usuário
-* [x] Páginas de autenticação
-* [x] Dashboard
-* [x] Componentização da interface
-* [x] Serviços para comunicação com a API
-* [x] Tipagem com TypeScript
-* [x] Estilização com Tailwind CSS
-* [ ] Responsividade completa de todas as telas
-* [ ] Refinamentos visuais e UX
-
-## Banco de dados
-
-O sistema utiliza PostgreSQL como banco de dados, acessado através do Entity Framework Core e do provedor Npgsql.
-
-A estrutura de domínio contempla entidades como:
-
-* Usuário
-* Aluno
-* Professor
-* Funcionário
-* Coordenador
-* Responsável
-* Ano Letivo
-* Turma
-* Matrícula
-* Disciplina
-* Professor/Turma/Disciplina
-* Frequência
-* Avaliação
-* Nota
-* Situação da Disciplina
-* Conselho de Classe
-* Voto do Conselho
-* Ocorrência
-* Comunicado
-* Relação Responsável/Aluno
-
-As migrations do Entity Framework ficam no projeto `SistemaEscolar.Infrastructure`.
+1. **Notas por bimestre.** O ano tem 4 bimestres. Cada um precisa das 3 avaliações (Comportamento, Atividade e Prova Bimestral), e a média do bimestre é a média simples delas.
+2. **Situação automática.** Quando os 4 bimestres estão completos, ao lançar ou importar notas o sistema calcula a média final:
+   - média final **≥ 6** → **Aprovado**
+   - média final **< 6** → **Em recuperação**
+3. **Prova final** (registrada por Admin/Coordenador): `(média final + prova final) / 2 ≥ 6` → **Aprovado**. Abaixo disso → **Reprovado**.
+4. **Conselho de classe.** O aluno com **3 ou mais** disciplinas reprovadas tem um conselho aberto automaticamente (*Pendente de votação*). Os professores votam (aprovar/reprovar) e Admin/Coordenador encerram o conselho. Vence a maioria.
 
 ## Como executar localmente
 
 ### Pré-requisitos
 
-* [.NET SDK 10](https://dotnet.microsoft.com/download)
-* [Node.js](https://nodejs.org/) (recomendado LTS)
-* PostgreSQL ou uma conta no [Supabase](https://supabase.com/)
-* Git
+- [.NET SDK 10](https://dotnet.microsoft.com/download)
+- [Node.js](https://nodejs.org/) (LTS)
+- Um banco PostgreSQL. O projeto usa o [Supabase](https://supabase.com/), que também fornece o Storage.
+- Ferramenta do EF Core: `dotnet tool install --global dotnet-ef`
 
-### 1. Clonar o repositório
+### 1. Clonar
 
 ```bash
 git clone https://github.com/GabrielS0306/sistema_escolar.git
 cd sistema_escolar
 ```
 
-### 2. Configurar o backend
+### 2. Configurar os segredos do backend
 
-Entre na pasta da API:
-
-```bash
-cd backend/SistemaEscolar.Api
-```
-
-Inicialize o User Secrets:
+Os segredos ficam em **User Secrets**, nunca no repositório. O `appsettings.json` guarda só placeholders vazios. Dentro de `backend/SistemaEscolar.Api`, rode **um comando por vez**:
 
 ```bash
 dotnet user-secrets init
-```
-
-Configure a conexão com o PostgreSQL:
-
-```bash
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=SEU_HOST;Database=postgres;Username=SEU_USUARIO;Password=SUA_SENHA;Port=5432"
+dotnet user-secrets set "Jwt:Key" "uma-chave-secreta-com-pelo-menos-32-caracteres"
+dotnet user-secrets set "Jwt:Issuer" "SistemaEscolar"
+dotnet user-secrets set "Jwt:Audience" "SistemaEscolarFrontend"
+dotnet user-secrets set "Supabase:Url" "https://SEU_PROJETO.supabase.co"
+dotnet user-secrets set "Supabase:ServiceKey" "SUA_SERVICE_ROLE_KEY"
 ```
 
-Também configure as chaves utilizadas pela autenticação JWT e os demais valores sensíveis esperados pela aplicação através do User Secrets.
+No Supabase Storage, crie dois buckets:
 
-> Nunca coloque senhas, chaves JWT, tokens ou outras credenciais diretamente no repositório.
+| Bucket | Visibilidade | Uso |
+|---|---|---|
+| `fotos-perfil` | público | fotos de perfil |
+| `documentos-usuario` | privado | documentos dos usuários |
 
-### 3. Instalar o Entity Framework Core CLI
+### 3. Aplicar as migrations
 
-Caso ainda não esteja instalado:
+> Use **caminhos absolutos**. Com caminhos relativos, o `dotnet-ef` falha neste projeto com `IndexOutOfRangeException`.
 
-```bash
-dotnet tool install --global dotnet-ef
+```powershell
+dotnet ef database update --project C:\caminho\para\sistema_escolar\backend\SistemaEscolar.Infrastructure --startup-project C:\caminho\para\sistema_escolar\backend\SistemaEscolar.Api
 ```
 
-Se já estiver instalado, pode atualizar com:
+Para criar uma migration nova, use `migrations add NomeDaMigration` com os mesmos parâmetros e depois rode o `database update`.
+
+### 4. Rodar a API
 
 ```bash
-dotnet tool update --global dotnet-ef
-```
-
-### 4. Aplicar as migrations
-
-A partir de `backend/SistemaEscolar.Api`:
-
-```bash
-dotnet ef database update --project ..\SistemaEscolar.Infrastructure --startup-project .
-```
-
-### 5. Executar a API
-
-```bash
+cd backend/SistemaEscolar.Api
 dotnet run
 ```
 
-Durante o desenvolvimento, a API disponibiliza a documentação interativa do Scalar em:
+A API sobe em `http://localhost:5155`. Em desenvolvimento, a documentação interativa fica em **`http://localhost:5155/scalar/v1`** (não existe `/swagger`).
 
-```text
-http://localhost:5155/scalar/v1
-```
+### 5. Rodar o frontend
 
-> A porta pode variar conforme a configuração do ambiente.
-
-### 6. Executar o frontend
-
-Em outro terminal, a partir da raiz do projeto:
+Em outro terminal:
 
 ```bash
 cd frontend
@@ -270,115 +193,96 @@ npm install
 npm run dev
 ```
 
-O Vite exibirá no terminal o endereço local para acessar a aplicação, normalmente:
+Acesse `http://localhost:5173`. O CORS da API libera apenas essa origem.
 
-```text
-http://localhost:5173
-```
+### 6. Primeiro acesso
+
+Não há registro público, então o primeiro usuário Admin precisa ser criado direto no banco. A senha precisa de um **hash BCrypt real**. Com a extensão `pgcrypto`, dá para gerar o hash com `crypt('sua-senha', gen_salt('bf', 11))`. Depois do login como Admin, os demais usuários são cadastrados pela tela `/admin/usuarios/novo`.
+
+### Scripts do frontend
+
+| Comando | O que faz |
+|---|---|
+| `npm run dev` | servidor de desenvolvimento |
+| `npm run build` | checagem de tipos + build de produção |
+| `npm run lint` | ESLint |
+| `npm run preview` | serve o build localmente |
 
 ## API
 
-Os endpoints são organizados por controllers e seguem o padrão:
+As rotas seguem o padrão `/api/[controller]` e sempre trafegam **DTOs**, nunca entidades. Recursos disponíveis:
 
-```text
-/api/[controller]
-```
+`Auth`, `Usuarios`, `Admins`, `Coordenadores`, `Professores`, `Funcionarios`, `Alunos`, `Responsaveis`, `AnoLetivos`, `Turmas`, `Matriculas`, `Disciplinas`, `ProfessorTurmaDisciplinas`, `Avaliacoes`, `Notas`, `Frequencias`, `SituacoesDisciplina`, `ConselhosClasse`, `Ocorrencias`, `Comunicados`, `DocumentosUsuario`.
 
-Entre os recursos disponíveis estão:
+Alguns endpoints de destaque:
 
-* Autenticação
-* Usuários
-* Alunos
-* Professores
-* Funcionários
-* Coordenadores
-* Responsáveis
-* Anos letivos
-* Turmas
-* Matrículas
-* Disciplinas
-* Professor/Turma/Disciplina
-* Avaliações
-* Notas
-* Frequências
-* Ocorrências
-* Situações disciplinares
-* Conselhos de classe
-* Comunicados
+| Endpoint | Descrição |
+|---|---|
+| `POST /api/Auth/login` | login (único endpoint anônimo) |
+| `GET /api/Alunos/me/resumo` | resumo do aluno logado |
+| `GET /api/Alunos/{id}/resumo` | resumo de um aluno |
+| `GET /api/ProfessorTurmaDisciplinas/minhas` | turmas/disciplinas do professor logado |
+| `POST /api/Notas/importar` | importação de notas por planilha |
+| `POST /api/Frequencias/importar` | importação de frequência por planilha |
+| `POST /api/SituacoesDisciplina/{id}/prova-final` | registra prova final |
+| `POST /api/ConselhosClasse/{id}/votar` | voto do professor |
+| `POST /api/ConselhosClasse/{id}/encerrar` | encerra o conselho |
 
-A documentação da API pode ser explorada pelo Scalar durante a execução em ambiente de desenvolvimento.
+### Enums no JSON
+
+Enums trafegam como números:
+
+| Enum | Valores |
+|---|---|
+| `Sexo` | 0 Masculino, 1 Feminino |
+| `TurnoEscolar` | 0 Manhã, 1 Tarde, 2 Noite |
+| `TipoAvaliacao` | 0 Comportamento, 1 Atividade, 2 ProvaBimestral |
+| `StatusDisciplina` | 0 EmAndamento, 1 Aprovado, 2 EmRecuperacao, 3 Reprovado |
+| `TipoOcorrencia` | 0 Disciplinar, 1 Saúde, 2 Atraso, 3 Elogio, 4 Outro |
+| `TipoDocumento` | 0 AtestadoMedico, 1 Comprovante, 2 Disciplinar, 3 Outro |
+| `ResultadoConselho` | 0 PendenteVotacao, 1 Aprovado, 2 Reprovado |
+| `TipoVoto` | 0 Aprovar, 1 Reprovar |
+| `PublicoAlvoComunicado` | 0 TodaEscola, 1 Turma, 2 Professores, 3 Alunos |
+
+> **Atenção aos ids:** `Usuario.Id`, `Aluno.Id` e `Matricula.Id` são diferentes. Confira qual deles cada endpoint espera.
 
 ## Segurança
 
-O projeto utiliza algumas medidas de segurança na API:
+- JWT Bearer com validação de emissor, audiência, expiração e chave de assinatura
+- Política de fallback: toda rota exige autenticação, salvo as marcadas como anônimas
+- Autorização por papel (`[Authorize(Roles = ...)]`), com JWT multi-papel
+- Senhas com hash BCrypt
+- Segredos em User Secrets, fora do controle de versão
+- Documentos em bucket privado do Supabase
 
-* Autenticação baseada em JWT Bearer
-* Validação de emissor e audiência do token
-* Validação de expiração do token
-* Validação da chave de assinatura
-* Autorização baseada em roles
-* Política de fallback exigindo autenticação nas rotas não liberadas explicitamente
-* Senhas armazenadas utilizando hash com BCrypt
-* Credenciais de banco destinadas ao User Secrets
+## Problemas comuns
 
-## Importação de notas
+| Sintoma | Causa provável |
+|---|---|
+| `IndexOutOfRangeException` no `dotnet ef` | caminhos relativos; use caminhos absolutos |
+| `PendingModelChangesWarning` | a migration não foi criada; rode `migrations add` antes do `database update` |
+| 404 sem corpo num controller novo | a API não foi reiniciada |
+| Erro ao salvar datas no PostgreSQL | `DateTime.Kind` *Unspecified*; use `DateTime.SpecifyKind(..., DateTimeKind.Utc)` |
+| Header `Authorization` corrompido ou upload falhando no Scalar | limitação do Scalar; teste com `curl -i` |
+| Usuário criado via SQL não consegue logar | `SenhaHash` não é um hash BCrypt válido |
+| Tela em branco + `No routes matched location` | rota faltando no `App.tsx` |
+| Arquivo novo não aparece no Vite | reinicie o `npm run dev` e dê hard refresh |
 
-O sistema permite importar notas através de planilhas.
+## Status e próximos passos
 
-O fluxo realiza:
+**Pronto:** núcleo acadêmico completo no backend, autenticação multi-papel, cadastro em 2 etapas com foto, documentos, gestão de usuários, importação de notas/frequência e dashboards de Admin, Aluno e Professor.
 
-1. Seleção da avaliação.
-2. Upload da planilha.
-3. Leitura das linhas da planilha.
-4. Busca do aluno através da matrícula.
-5. Validação do valor da nota.
-6. Registro das notas válidas.
-7. Registro dos erros encontrados.
-8. Atualização da situação da disciplina dos alunos processados.
+**Próximos passos:**
 
-Isso permite realizar lançamentos em lote sem precisar cadastrar cada nota individualmente.
-
-## Regras acadêmicas implementadas
-
-A situação da disciplina é atualizada automaticamente após o lançamento das notas.
-
-Para o cálculo da média final, o sistema verifica a existência dos tipos obrigatórios de avaliação em cada bimestre:
-
-* Comportamento
-* Atividade
-* Prova bimestral
-
-Com os quatro bimestres completos, a média final é calculada e a situação pode ser definida como:
-
-* **Aprovado:** média final maior ou igual a 6.
-* **Em recuperação:** média final abaixo de 6.
-
-Para alunos em recuperação, é possível registrar a prova final. A média considerada após a prova final é calculada pela média entre a média final anterior e a nota da prova final.
-
-## Status do projeto
-
-O projeto está em desenvolvimento ativo.
-
-### Próximos passos
-
-* [ ] Aperfeiçoar o dashboard de cada perfil
-* [ ] Finalizar a área do responsável
-* [ ] Implementar notificações
-* [ ] Evoluir o módulo de frequência
-* [ ] Refinar regras acadêmicas conforme levantamento de requisitos
-* [ ] Melhorar responsividade
-* [ ] Adicionar testes automatizados
-* [ ] Melhorar documentação da API
-* [ ] Preparar configuração para ambiente de produção
-
-## Objetivo
-
-O projeto tem como objetivo desenvolver uma solução complementar para a gestão escolar, permitindo centralizar informações e facilitar o acompanhamento de alunos, professores, responsáveis e equipes administrativas.
-
-A proposta busca separar responsabilidades por perfil de usuário e fornecer uma visão mais organizada das informações acadêmicas, disciplinares e administrativas.
+- [ ] Dashboards de Coordenador, Responsável e Funcionário
+- [ ] Telas de Conselho de Classe e Comunicados
+- [ ] URL assinada para visualizar documentos do bucket privado
+- [ ] Notificações para responsáveis
+- [ ] Responsividade e refinamentos de UX
+- [ ] Testes automatizados
+- [ ] Configuração para produção
+- [ ] Módulo Financeiro (deixado para o fim do projeto)
 
 ## Autor
 
-Desenvolvido por **Gabriel S.**
-
-* GitHub: [GabrielS0306](https://github.com/GabrielS0306)
+Desenvolvido por **Gabriel S.** · GitHub: [GabrielS0306](https://github.com/GabrielS0306)
