@@ -4,32 +4,40 @@ import { useState, useEffect } from 'react';
 import { PerfilModal } from './PerfilModal';
 import { getMe } from '../services/authService';
 
-const MENU_SECOES = [
+interface ItemMenu {
+    path: string;            // relativo à área: '' é o painel
+    label: string;
+    icone: string;
+    somenteAdmin?: boolean;  // escondido para o Coordenador (o backend também bloqueia)
+}
+
+// O mesmo layout serve à área do Admin (/admin) e do Coordenador (/coordenador).
+const MENU_SECOES: { titulo: string | null; itens: ItemMenu[] }[] = [
     {
         titulo: null,
-        itens: [{ path: '/admin', label: 'Painel', icone: 'painel' }],
+        itens: [{ path: '', label: 'Painel', icone: 'painel' }],
     },
     {
         titulo: 'Pessoas',
         itens: [
-            { path: '/admin/usuarios', label: 'Usuários', icone: 'usuarios' },
-            { path: '/admin/usuarios/novo', label: 'Novo usuário', icone: 'novoUsuario' },
-            { path: '/admin/alunos', label: 'Alunos', icone: 'alunos' },
-            { path: '/admin/professores', label: 'Professores', icone: 'professores' },
+            { path: 'usuarios', label: 'Usuários', icone: 'usuarios', somenteAdmin: true },
+            { path: 'usuarios/novo', label: 'Novo usuário', icone: 'novoUsuario' },
+            { path: 'alunos', label: 'Alunos', icone: 'alunos' },
+            { path: 'professores', label: 'Professores', icone: 'professores' },
         ],
     },
     {
         titulo: 'Acadêmico',
         itens: [
-            { path: '/admin/turmas', label: 'Turmas', icone: 'turmas' },
-            { path: '/admin/frequencia', label: 'Frequência', icone: 'frequencia' },
-            { path: '/admin/notas', label: 'Notas', icone: 'notas' },
-            { path: '/admin/conselhos', label: 'Conselho de classe', icone: 'conselho' },
+            { path: 'turmas', label: 'Turmas', icone: 'turmas' },
+            { path: 'frequencia', label: 'Frequência', icone: 'frequencia' },
+            { path: 'notas', label: 'Notas', icone: 'notas' },
+            { path: 'conselhos', label: 'Conselho de classe', icone: 'conselho' },
         ],
     },
     {
         titulo: 'Comunicação',
-        itens: [{ path: '/admin/comunicados', label: 'Comunicados', icone: 'comunicados' }],
+        itens: [{ path: 'comunicados', label: 'Comunicados', icone: 'comunicados' }],
     },
 ];
 
@@ -126,6 +134,12 @@ export function Layout() {
     return () => { cancelado = true; };
     }, [perfilAberto]);
 
+    const ehCoordenador = sessao?.papelAtivo === 'Coordenador';
+    const base = ehCoordenador ? '/coordenador' : '/admin';
+    const secoes = MENU_SECOES
+        .map((secao) => ({ ...secao, itens: secao.itens.filter((item) => !(ehCoordenador && item.somenteAdmin)) }))
+        .filter((secao) => secao.itens.length > 0);
+
     function handleSair() {
         sair();
         navigate('/login');
@@ -145,23 +159,24 @@ export function Layout() {
                         <p className="font-serif text-xl leading-tight">Sistema Escolar</p>
                     </div>
 
-                    <p className="text-xs text-paper/60 mt-2 ml-10">Painel administrativo</p>
+                    <p className="text-xs text-paper/60 mt-2 ml-10">{ehCoordenador ? 'Coordenação pedagógica' : 'Painel administrativo'}</p>
                 </div>
 
                 <nav className="flex-1 px-3 overflow-y-auto">
-                    {MENU_SECOES.map((secao, i) => (
+                    {secoes.map((secao, i) => (
                         <div key={i} className={i > 0 ? 'mt-5' : ''}>
                             {secao.titulo && (
                                 <p className="px-3 text-xs text-paper/40 uppercase tracking-wide mb-1">{secao.titulo}</p>
                             )}
 
                             {secao.itens.map((item) => {
-                                const ativo = location.pathname === item.path;
+                                const destino = item.path ? `${base}/${item.path}` : base;
+                                const ativo = location.pathname === destino;
 
                                 return (
                                     <Link
-                                        key={item.path}
-                                        to={item.path}
+                                        key={destino}
+                                        to={destino}
                                         className={`flex items-center gap-2.5 px-3 py-2 text-sm border-l-2 mb-0.5 transition-colors ${
                                         ativo
                                             ? 'border-gold text-paper bg-white/5'

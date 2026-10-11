@@ -3,7 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 
 const ROTAS_POR_PAPEL: Record<string, string> = {
     Admin: '/admin',
-    Coordenador: '/dashboard/coordenador',
+    Coordenador: '/coordenador',
     Professor: '/dashboard/professor',
     Responsavel: '/dashboard/responsavel',
     Aluno: '/dashboard/aluno',
