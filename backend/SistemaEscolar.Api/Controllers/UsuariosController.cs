@@ -41,6 +41,21 @@ public class UsuariosController : ControllerBase
         });
     }
 
+    [HttpPut("{id}/senha")]
+    public async Task<ActionResult> RedefinirSenha(Guid id, RedefinirSenhaDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.NovaSenha) || dto.NovaSenha.Length < 6)
+            return BadRequest("A nova senha precisa ter pelo menos 6 caracteres.");
+
+        var usuario = await _context.Usuarios.FindAsync(id);
+        if (usuario is null) return NotFound();
+
+        usuario.SenhaHash = BCrypt.Net.BCrypt.HashPassword(dto.NovaSenha);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
     [HttpPut("{id}")]
     public async Task<ActionResult<UsuarioDetalhadoResponseDto>> Atualizar(Guid id, [FromForm] AtualizarUsuarioAdminDto dto, IFormFile? foto)
     {

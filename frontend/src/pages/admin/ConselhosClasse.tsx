@@ -5,9 +5,9 @@ import { TabelaConselhos } from '../../components/TabelaConselhos';
 import { Modal } from '../../components/Modal';
 import { RESULTADO_COR, RESULTADO_LABEL, type ConselhoClasse } from '../../types/conselho';
 
-// Mesma regra do backend (ConselhosClasseController.Encerrar): empate reprova.
+// Mesma regra do backend (ConselhosClasseController.Encerrar): empate aprova.
 function resultadoPrevisto(c: ConselhoClasse) {
-    return c.votosAprovar > c.votosReprovar ? 1 : 2;
+    return c.votosAprovar >= c.votosReprovar ? 1 : 2;
 }
 
 export function ConselhosClasse() {
