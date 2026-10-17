@@ -17,6 +17,7 @@ import { ConsultaFrequencia } from './pages/admin/ConsultaFrequencia';
 import { ConsultaNotas } from './pages/admin/ConsultaNotas';
 import { ConselhosClasse } from './pages/admin/ConselhosClasse';
 import { Comunicados } from './pages/admin/Comunicados';
+import { Recuperacao } from './pages/admin/Recuperacao';
 
 import { AbaAlunos } from './pages/professor/AbaAlunos';
 import { AbaFrequencia } from './pages/professor/AbaFrequencia';
@@ -48,6 +49,7 @@ function rotasGestao() {
       <Route path="professores" element={<ListaProfessores />} />
       <Route path="frequencia" element={<ConsultaFrequencia />} />
       <Route path="notas" element={<ConsultaNotas />} />
+      <Route path="recuperacao" element={<Recuperacao />} />
       <Route path="conselhos" element={<ConselhosClasse />} />
       <Route path="comunicados" element={<Comunicados />} />
     </>

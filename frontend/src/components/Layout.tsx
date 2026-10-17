@@ -32,6 +32,7 @@ const MENU_SECOES: { titulo: string | null; itens: ItemMenu[] }[] = [
             { path: 'turmas', label: 'Turmas', icone: 'turmas' },
             { path: 'frequencia', label: 'Frequência', icone: 'frequencia' },
             { path: 'notas', label: 'Notas', icone: 'notas' },
+            { path: 'recuperacao', label: 'Recuperação', icone: 'recuperacao' },
             { path: 'conselhos', label: 'Conselho de classe', icone: 'conselho' },
         ],
     },
@@ -104,6 +105,12 @@ function Icone({ nome }: { nome: string }) {
                     <path d="M4 7h16"/>
                     <path d="M7 7l-3 6a3 3 0 0 0 6 0L7 7Z"/>
                     <path d="M17 7l-3 6a3 3 0 0 0 6 0l-3-6Z"/>
+                </svg>;
+        case 'recuperacao':
+            return <svg {...props}>
+                    <path d="M3 12a9 9 0 1 0 3-6.7"/>
+                    <path d="M3 4v5h5"/>
+                    <path d="M12 8v4l3 2"/>
                 </svg>;
         case 'comunicados':
             return <svg {...props}>
