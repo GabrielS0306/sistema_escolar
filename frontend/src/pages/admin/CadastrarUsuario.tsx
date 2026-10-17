@@ -10,6 +10,7 @@ import {
     vincularAlunoResponsavel,
 } from '../../services/perfilService';
 import { useAlunos } from '../../hooks/useAlunos';
+import { useAuth } from '../../hooks/useAuth';
 
 type Funcao = 'Admin' | 'Coordenador' | 'Professor' | 'Responsavel' | 'Aluno' | 'Funcionario';
 
@@ -22,7 +23,15 @@ const FUNCOES: { value: Funcao; label: string }[] = [
     { value: 'Funcionario', label: 'Funcionário' },
 ];
 
+// O backend só deixa o Coordenador criar perfis de Aluno e Responsável; o resto é exclusivo do Admin.
+const FUNCOES_COORDENADOR: Funcao[] = ['Aluno', 'Responsavel'];
+
 export function CadastrarUsuario() {
+    const { sessao } = useAuth();
+    const funcoesPermitidas = sessao?.papelAtivo === 'Coordenador'
+        ? FUNCOES.filter((f) => FUNCOES_COORDENADOR.includes(f.value))
+        : FUNCOES;
+
     const [etapa, setEtapa] = useState<1 | 2>(1);
     const [usuarioId, setUsuarioId] = useState<string | null>(null);
     const [funcao, setFuncao] = useState<Funcao>('Aluno');
@@ -225,7 +234,7 @@ export function CadastrarUsuario() {
                             <div>
                                 <label className={labelClasses}>Função</label>
                                 <select value={funcao} onChange={(e) => setFuncao(e.target.value as Funcao)} className={inputClasses}>
-                                    {FUNCOES.map((f) => (
+                                    {funcoesPermitidas.map((f) => (
                                         <option key={f.value} value={f.value}>{f.label}</option>
                                     ))}
                                 </select>

@@ -40,6 +40,7 @@ public class MatriculasController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Coordenador")]
     public async Task<ActionResult<MatriculaResponseDto>> Create(CreateMatriculaDto dto)
     {
         var aluno = await _context.Alunos

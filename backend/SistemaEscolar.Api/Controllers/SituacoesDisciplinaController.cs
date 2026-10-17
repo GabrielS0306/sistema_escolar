@@ -39,6 +39,30 @@ public class SituacoesDisciplinaController : ControllerBase
         return Ok(situacoes);
     }
 
+    [HttpGet("recuperacao")]
+    [Authorize(Roles = "Admin,Coordenador")]
+    public async Task<ActionResult<IEnumerable<SituacaoRecuperacaoResponseDto>>> GetEmRecuperacao()
+    {
+        var situacoes = await _context.SituacoesDisciplina
+            .Where(s => s.Status == StatusDisciplina.EmRecuperacao)
+            .OrderBy(s => s.Aluno.Usuario.Nome)
+            .ThenBy(s => s.ProfessorTurmaDisciplina.Disciplina.Nome)
+            .Select(s => new SituacaoRecuperacaoResponseDto
+            {
+                Id = s.Id,
+                AlunoId = s.AlunoId,
+                NomeAluno = s.Aluno.Usuario.Nome,
+                Matricula = s.Aluno.Matricula,
+                Disciplina = s.ProfessorTurmaDisciplina.Disciplina.Nome,
+                Turma = s.ProfessorTurmaDisciplina.Turma.Nome,
+                AnoLetivo = s.ProfessorTurmaDisciplina.Turma.AnoLetivo.Ano,
+                MediaFinal = s.MediaFinal
+            })
+            .ToListAsync();
+
+        return Ok(situacoes);
+    }
+
     [HttpPost("{id}/prova-final")]
     [Authorize(Roles = "Admin,Coordenador")]
     public async Task<ActionResult<SituacaoDisciplinaResponseDto>> RegistrarProvaFinal(Guid id, RegistrarProvaFinalDto dto)
@@ -50,6 +74,9 @@ public class SituacoesDisciplinaController : ControllerBase
             .FirstOrDefaultAsync(s => s.Id == id);
 
         if (situacao is null) return NotFound();
+
+        if (dto.NotaProvaFinal < 0 || dto.NotaProvaFinal > 10)
+            return BadRequest("A nota da prova final deve estar entre 0 e 10.");
 
         if (situacao.Status != StatusDisciplina.EmRecuperacao)
             return BadRequest("Essa situação não está em recuperação (não precisa de prova final).");

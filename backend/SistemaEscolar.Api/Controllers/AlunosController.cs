@@ -54,6 +54,7 @@ public class AlunosController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Coordenador")]
     public async Task<ActionResult<AlunoResponseDto>> Create(CreateAlunoDto dto)
     {
         var usuario = await _context.Usuarios.FindAsync(dto.UsuarioId);

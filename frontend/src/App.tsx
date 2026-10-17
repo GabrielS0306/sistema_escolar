@@ -17,6 +17,7 @@ import { ConsultaFrequencia } from './pages/admin/ConsultaFrequencia';
 import { ConsultaNotas } from './pages/admin/ConsultaNotas';
 import { ConselhosClasse } from './pages/admin/ConselhosClasse';
 import { Comunicados } from './pages/admin/Comunicados';
+import { Recuperacao } from './pages/admin/Recuperacao';
 
 import { AbaAlunos } from './pages/professor/AbaAlunos';
 import { AbaFrequencia } from './pages/professor/AbaFrequencia';
@@ -36,6 +37,23 @@ import { DashboardSemPerfil } from './pages/DashboardSemPerfil';
 function RedirecionarComVinculo() {
   const [searchParams] = useSearchParams();
   return <Navigate to={`alunos?${searchParams.toString()}`} replace />;
+}
+
+// Telas compartilhadas pelas áreas do Admin e do Coordenador.
+function rotasGestao() {
+  return (
+    <>
+      <Route path="usuarios/novo" element={<CadastrarUsuario />} />
+      <Route path="alunos" element={<ListaAlunos />} />
+      <Route path="turmas" element={<ListaTurmas />} />
+      <Route path="professores" element={<ListaProfessores />} />
+      <Route path="frequencia" element={<ConsultaFrequencia />} />
+      <Route path="notas" element={<ConsultaNotas />} />
+      <Route path="recuperacao" element={<Recuperacao />} />
+      <Route path="conselhos" element={<ConselhosClasse />} />
+      <Route path="comunicados" element={<Comunicados />} />
+    </>
+  );
 }
 
 function App() {
@@ -63,7 +81,6 @@ function App() {
               <Route path="observacoes" element={<AbaObservacoes />} />
             </Route>
           </Route>
-          <Route path="coordenador" element={<DashboardCoordenador />} />
           <Route path="responsavel" element={<LayoutResponsavel />}>
             <Route index element={<DashboardResponsavel />} />
           </Route>
@@ -75,14 +92,13 @@ function App() {
         <Route path="/admin" element={<Layout />}>
           <Route index element={<DashboardAdmin />} />
           <Route path="usuarios" element={<ListaUsuarios />} />
-          <Route path="usuarios/novo" element={<CadastrarUsuario />} />
-          <Route path="alunos" element={<ListaAlunos />} />
-          <Route path="turmas" element={<ListaTurmas />} />
-          <Route path="professores" element={<ListaProfessores />} />
-          <Route path="frequencia" element={<ConsultaFrequencia />} />
-          <Route path="notas" element={<ConsultaNotas />} />
-          <Route path="conselhos" element={<ConselhosClasse />} />
-          <Route path="comunicados" element={<Comunicados />} />
+          {rotasGestao()}
+        </Route>
+
+        {/* Coordenação: mesmas telas de gestão, sem a gestão de usuários (exclusiva do Admin) */}
+        <Route path="/coordenador" element={<Layout />}>
+          <Route index element={<DashboardCoordenador />} />
+          {rotasGestao()}
         </Route>
       </Routes>
     </BrowserRouter>
