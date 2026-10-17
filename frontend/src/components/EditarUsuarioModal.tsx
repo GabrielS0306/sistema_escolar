@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Modal } from './Modal';
-import { getUsuario, atualizarUsuarioAdmin } from '../services/usuarioService';
+import { getUsuario, atualizarUsuarioAdmin, redefinirSenhaUsuario } from '../services/usuarioService';
 import type { UsuarioDetalhado } from '../types/usuario';
 
 interface EditarUsuarioModalProps {
@@ -22,6 +22,10 @@ export function EditarUsuarioModal({ usuarioId, onFechar }: EditarUsuarioModalPr
     const [endereco, setEndereco] = useState('');
     const [foto, setFoto] = useState<File | null>(null);
 
+    const [novaSenha, setNovaSenha] = useState('');
+    const [redefinindo, setRedefinindo] = useState(false);
+    const [avisoSenha, setAvisoSenha] = useState<{ ok: boolean; texto: string } | null>(null);
+
     const fotoPreview = useMemo(() => (foto ? URL.createObjectURL(foto) : null), [foto]);
 
     useEffect(() => {
@@ -33,6 +37,8 @@ export function EditarUsuarioModal({ usuarioId, onFechar }: EditarUsuarioModalPr
             setCarregando(true);
             setErro(null);
             setSucesso(false);
+            setNovaSenha('');
+            setAvisoSenha(null);
 
             try {
                 const dados = await getUsuario(usuarioId);
@@ -71,6 +77,22 @@ export function EditarUsuarioModal({ usuarioId, onFechar }: EditarUsuarioModalPr
             setErro('Não foi possível salvar as alterações.');
         } finally {
             setSalvando(false);
+        }
+    }
+
+    async function handleRedefinirSenha() {
+        if (!usuarioId || novaSenha.length < 6) return;
+        setRedefinindo(true);
+        setAvisoSenha(null);
+
+        try {
+            await redefinirSenhaUsuario(usuarioId, novaSenha);
+            setNovaSenha('');
+            setAvisoSenha({ ok: true, texto: 'Senha redefinida. Informe a nova senha ao usuário.' });
+        } catch {
+            setAvisoSenha({ ok: false, texto: 'Não foi possível redefinir a senha.' });
+        } finally {
+            setRedefinindo(false);
         }
     }
 
@@ -116,6 +138,40 @@ export function EditarUsuarioModal({ usuarioId, onFechar }: EditarUsuarioModalPr
                         {salvando ? 'Salvando...' : 'Salvar alterações'}
                     </button>
                 </form>
+            )}
+
+            {usuario && !carregando && (
+                <div className="mt-8 pt-6 border-t border-ink/10">
+                    <p className="font-serif text-lg text-ink">Redefinir senha</p>
+                    <p className="text-sm text-slate mt-1 mb-4">
+                        Para quando o usuário esquecer a senha. A senha atual deixa de valer na hora.
+                    </p>
+
+                    {avisoSenha && (
+                        <p className={`text-sm rounded px-3 py-2 mb-4 border ${avisoSenha.ok ? 'text-ink bg-gold/10 border-gold/30' : 'text-red-700 bg-red-50 border-red-200'}`}>
+                            {avisoSenha.texto}
+                        </p>
+                    )}
+
+                    <label className={labelClasses}>Nova senha (mínimo 6 caracteres)</label>
+                    <div className="flex gap-3">
+                        <input
+                            type="password"
+                            value={novaSenha}
+                            onChange={(e) => setNovaSenha(e.target.value)}
+                            autoComplete="new-password"
+                            className="flex-1 h-11 border border-ink/20 rounded px-3 focus:outline-none focus:border-gold"
+                        />
+                        <button
+                            type="button"
+                            onClick={handleRedefinirSenha}
+                            disabled={redefinindo || novaSenha.length < 6}
+                            className="border border-ink text-ink rounded px-5 text-sm font-medium hover:bg-ink/5 disabled:opacity-50"
+                        >
+                            {redefinindo ? 'Redefinindo...' : 'Redefinir'}
+                        </button>
+                    </div>
+                </div>
             )}
         </Modal>
     );

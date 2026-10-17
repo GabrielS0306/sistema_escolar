@@ -1,4 +1,4 @@
-import { apiGet, apiPutForm } from './api';
+import { apiGet, apiPut, apiPutForm } from './api';
 import type { UsuarioDetalhado } from '../types/usuario';
 
 export interface UsuarioResumo {
@@ -39,4 +39,8 @@ export function atualizarUsuarioAdmin(id: string, dados: DadosEdicaoAdmin): Prom
     if (dados.foto) formData.append('foto', dados.foto);
 
     return apiPutForm<UsuarioDetalhado>(`/Usuarios/${id}`, formData);
+}
+
+export function redefinirSenhaUsuario(id: string, novaSenha: string): Promise<void> {
+    return apiPut<void>(`/Usuarios/${id}/senha`, { novaSenha });
 }

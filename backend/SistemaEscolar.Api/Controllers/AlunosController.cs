@@ -12,10 +12,12 @@ namespace SistemaEscolar.Api.Controllers;
 public class AlunosController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly SistemaEscolar.Api.Services.AcessoAlunoService _acessoAluno;
 
-    public AlunosController(AppDbContext context)
+    public AlunosController(AppDbContext context, SistemaEscolar.Api.Services.AcessoAlunoService acessoAluno)
     {
         _context = context;
+        _acessoAluno = acessoAluno;
     }
 
     [HttpGet]
@@ -83,20 +85,7 @@ public class AlunosController : ControllerBase
     [HttpGet("{id}/resumo")]
     public async Task<ActionResult<ResumoAlunoResponseDto>> GetResumo(Guid id)
     {
-        var ehEquipe = User.IsInRole("Admin") || User.IsInRole("Coordenador")
-            || User.IsInRole("Professor") || User.IsInRole("Funcionario");
-
-        if (!ehEquipe)
-        {
-            var usuarioId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
-
-            var ehResponsavelDoAluno = await _context.ResponsaveisAlunos
-                .AnyAsync(ra => ra.AlunoId == id && ra.Responsavel.UsuarioId == usuarioId);
-            var ehOProprioAluno = await _context.Alunos
-                .AnyAsync(a => a.Id == id && a.UsuarioId == usuarioId);
-
-            if (!ehResponsavelDoAluno && !ehOProprioAluno) return Forbid();
-        }
+        if (!await _acessoAluno.PodeVerAluno(User, id)) return Forbid();
 
         return await MontarResumo(id);
     }

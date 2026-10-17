@@ -82,7 +82,8 @@ public class ConselhosClasseController : ControllerBase
         var votosAprovar = votos.Count(v => v.Voto == TipoVoto.Aprovar);
         var votosReprovar = votos.Count(v => v.Voto == TipoVoto.Reprovar);
 
-        conselho.Resultado = votosAprovar > votosReprovar
+        // Empate favorece o aluno.
+        conselho.Resultado = votosAprovar >= votosReprovar
             ? ResultadoConselho.Aprovado
             : ResultadoConselho.Reprovado;
 

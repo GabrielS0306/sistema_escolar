@@ -10,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 builder.Services.AddScoped<SistemaEscolar.Api.Services.SupabaseStorageService>();
+builder.Services.AddScoped<SistemaEscolar.Api.Services.AcessoAlunoService>();
 
 builder.Services.AddCors(options =>
 {

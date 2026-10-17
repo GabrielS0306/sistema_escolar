@@ -11,15 +11,19 @@ namespace SistemaEscolar.Api.Controllers;
 public class SituacoesDisciplinaController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly SistemaEscolar.Api.Services.AcessoAlunoService _acessoAluno;
 
-    public SituacoesDisciplinaController(AppDbContext context)
+    public SituacoesDisciplinaController(AppDbContext context, SistemaEscolar.Api.Services.AcessoAlunoService acessoAluno)
     {
         _context = context;
+        _acessoAluno = acessoAluno;
     }
 
     [HttpGet("aluno/{alunoId}")]
     public async Task<ActionResult<IEnumerable<SituacaoDisciplinaResponseDto>>> GetPorAluno(Guid alunoId)
     {
+        if (!await _acessoAluno.PodeVerAluno(User, alunoId)) return Forbid();
+
         var situacoes = await _context.SituacoesDisciplina
             .Include(s => s.Aluno).ThenInclude(a => a.Usuario)
             .Include(s => s.ProfessorTurmaDisciplina).ThenInclude(v => v.Turma)
