@@ -11,7 +11,8 @@ public class DocumentoUsuario
 
     public TipoDocumento Tipo { get; set; }
     public string Descricao { get; set; } = string.Empty;
-    public string ArquivoUrl { get; set; } = string.Empty;
+    // Caminho dentro do bucket privado (ex.: "{usuarioId}/{guid}.pdf"), não uma URL — o acesso é por URL assinada.
+    public string CaminhoArquivo { get; set; } = string.Empty;
     public DateTime Data { get; set; } = DateTime.UtcNow;
 
     public Guid RegistradoPorUsuarioId { get; set; }
