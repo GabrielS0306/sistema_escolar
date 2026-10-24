@@ -157,7 +157,7 @@ namespace SistemaEscolar.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("ArquivoUrl")
+                    b.Property<string>("CaminhoArquivo")
                         .IsRequired()
                         .HasColumnType("text");
 

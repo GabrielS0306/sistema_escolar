@@ -13,6 +13,9 @@ namespace SistemaEscolar.Api.Controllers;
 [Authorize(Roles = "Admin")]
 public class DocumentosUsuarioController : ControllerBase
 {
+    private const string Bucket = "documentos-usuario";
+    private const int ValidadeUrlSegundos = 300;
+
     private readonly AppDbContext _context;
     private readonly SupabaseStorageService _storageService;
 
@@ -26,7 +29,6 @@ public class DocumentosUsuarioController : ControllerBase
     public async Task<ActionResult<IEnumerable<DocumentoUsuarioResponseDto>>> GetPorUsuario(Guid usuarioId)
     {
         var documentos = await _context.DocumentosUsuario
-            .Include(d => d.RegistradoPorUsuario)
             .Where(d => d.UsuarioId == usuarioId)
             .OrderByDescending(d => d.Data)
             .Select(d => new DocumentoUsuarioResponseDto
@@ -34,13 +36,28 @@ public class DocumentosUsuarioController : ControllerBase
                 Id = d.Id,
                 Tipo = d.Tipo,
                 Descricao = d.Descricao,
-                ArquivoUrl = d.ArquivoUrl,
                 Data = d.Data,
                 RegistradoPor = d.RegistradoPorUsuario.Nome
             })
             .ToListAsync();
 
         return Ok(documentos);
+    }
+
+    // URL temporária para abrir o arquivo do bucket privado. Expira em poucos minutos.
+    [HttpGet("{id}/url")]
+    public async Task<ActionResult<DocumentoUrlResponseDto>> GetUrl(Guid id)
+    {
+        var documento = await _context.DocumentosUsuario.FindAsync(id);
+        if (documento is null) return NotFound();
+
+        var url = await _storageService.CriarUrlAssinadaAsync(Bucket, documento.CaminhoArquivo, ValidadeUrlSegundos);
+
+        return Ok(new DocumentoUrlResponseDto
+        {
+            Url = url,
+            ExpiraEm = DateTime.UtcNow.AddSeconds(ValidadeUrlSegundos)
+        });
     }
 
     [HttpPost]
@@ -52,8 +69,8 @@ public class DocumentosUsuarioController : ControllerBase
         var registradoPorId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
         var registradoPor = await _context.Usuarios.FindAsync(registradoPorId);
 
-        var nomeArquivo = $"{dto.UsuarioId}/{Guid.NewGuid()}{Path.GetExtension(arquivo.FileName)}";
-        var arquivoUrl = await _storageService.UploadArquivoAsync(arquivo, "documentos-usuario", nomeArquivo);
+        var caminho = $"{dto.UsuarioId}/{Guid.NewGuid()}{Path.GetExtension(arquivo.FileName)}";
+        await _storageService.UploadArquivoPrivadoAsync(arquivo, Bucket, caminho);
 
         var documento = new DocumentoUsuario
         {
@@ -61,7 +78,7 @@ public class DocumentosUsuarioController : ControllerBase
             UsuarioId = dto.UsuarioId,
             Tipo = dto.Tipo,
             Descricao = dto.Descricao,
-            ArquivoUrl = arquivoUrl,
+            CaminhoArquivo = caminho,
             Data = DateTime.UtcNow,
             RegistradoPorUsuarioId = registradoPorId
         };
@@ -74,7 +91,6 @@ public class DocumentosUsuarioController : ControllerBase
             Id = documento.Id,
             Tipo = documento.Tipo,
             Descricao = documento.Descricao,
-            ArquivoUrl = documento.ArquivoUrl,
             Data = documento.Data,
             RegistradoPor = registradoPor!.Nome
         };
