@@ -154,11 +154,11 @@ export function Layout() {
 
     return (
         <div className="min-h-screen bg-paper">
-            <aside className="fixed inset-y-0 left-0 w-60 bg-ink text-paper flex flex-col">
+            <aside className="fixed inset-y-0 left-0 w-60 bg-sidebar text-sidebar-fg flex flex-col">
                 <div className="px-6 py-8">
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-gold flex items-center justify-center">
-                            <span className="font-serif text-ink font-semibold text-sm">
+                            <span className="font-serif text-[#1B2A4A] font-semibold text-sm">
                                 SE
                             </span>
                         </div>
@@ -166,14 +166,14 @@ export function Layout() {
                         <p className="font-serif text-xl leading-tight">Sistema Escolar</p>
                     </div>
 
-                    <p className="text-xs text-paper/60 mt-2 ml-10">{ehCoordenador ? 'Coordenação pedagógica' : 'Painel administrativo'}</p>
+                    <p className="text-xs text-sidebar-muted mt-2 ml-10">{ehCoordenador ? 'Coordenação pedagógica' : 'Painel administrativo'}</p>
                 </div>
 
                 <nav className="flex-1 px-3 overflow-y-auto">
                     {secoes.map((secao, i) => (
                         <div key={i} className={i > 0 ? 'mt-5' : ''}>
                             {secao.titulo && (
-                                <p className="px-3 text-xs text-paper/40 uppercase tracking-wide mb-1">{secao.titulo}</p>
+                                <p className="px-3 text-xs text-sidebar-muted uppercase tracking-wide mb-1">{secao.titulo}</p>
                             )}
 
                             {secao.itens.map((item) => {
@@ -186,8 +186,8 @@ export function Layout() {
                                         to={destino}
                                         className={`flex items-center gap-2.5 px-3 py-2 text-sm border-l-2 mb-0.5 transition-colors ${
                                         ativo
-                                            ? 'border-gold text-paper bg-white/5'
-                                            : 'border-transparent text-paper/70 hover:text-paper hover:border-paper/30'
+                                            ? 'border-gold text-sidebar-fg bg-white/5'
+                                            : 'border-transparent text-sidebar-muted hover:text-sidebar-fg hover:border-white/20'
                                         }`}
                                     >
                                         <Icone nome={item.icone} />
@@ -217,13 +217,13 @@ export function Layout() {
                                 {sessao?.nome}
                             </p>
 
-                            <p className="text-xs text-paper/50">
+                            <p className="text-xs text-sidebar-muted">
                                 {sessao?.papelAtivo}
                             </p>
                         </div>
                     </button>
 
-                    <button onClick={handleSair} title="Sair" className="text-paper/40 hover:text-gold transition-colors shrink-0">
+                    <button onClick={handleSair} title="Sair" className="text-sidebar-muted hover:text-gold transition-colors shrink-0">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" >
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
 

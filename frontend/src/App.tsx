@@ -36,6 +36,7 @@ import { DashboardFuncionario } from './pages/funcionario/DashboardFuncionario';
 import { ConsultaAlunosFuncionario } from './pages/funcionario/ConsultaAlunosFuncionario';
 import { OcorrenciasFuncionario } from './pages/funcionario/OcorrenciasFuncionario';
 import { DashboardSemPerfil } from './pages/DashboardSemPerfil';
+import { GaleriaUi } from './pages/dev/GaleriaUi';
 
 function RedirecionarComVinculo() {
   const [searchParams] = useSearchParams();
@@ -66,6 +67,8 @@ function App() {
         <Route index element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/selecionar-papel" element={<SelecionarPapel />} />
+        {/* Vitrine do kit visual: só em desenvolvimento */}
+        {import.meta.env.DEV && <Route path="/ui" element={<GaleriaUi />} />}
 
         {/* Dashboards por papel */}
         <Route path="/dashboard">
