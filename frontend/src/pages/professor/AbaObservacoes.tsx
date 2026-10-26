@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAlunosPorTurma } from '../../hooks/useAlunosPorTurma';
 import { useOcorrenciasTurma } from '../../hooks/useOcorrenciasTurma';
 import { criarOcorrencia } from '../../services/ocorrenciaTurmaService';
-import { getMe } from '../../services/authService';
 import { Modal } from '../../components/Modal';
 
 const TIPOS_OCORRENCIA = [
@@ -19,11 +18,6 @@ export function AbaObservacoes() {
     const { alunos } = useAlunosPorTurma(turmaId);
     const { ocorrencias, carregando, erro, recarregarDados } = useOcorrenciasTurma(turmaId);
 
-    const [meuUsuarioId, setMeuUsuarioId] = useState<string | null>(null);
-    useEffect(() => {
-        getMe().then((u) => setMeuUsuarioId(u.id)).catch(() => {});
-    }, []);
-
     const [busca, setBusca] = useState('');
     const [modalAberto, setModalAberto] = useState(false);
     const [alunoSelecionado, setAlunoSelecionado] = useState('');
@@ -37,7 +31,7 @@ export function AbaObservacoes() {
     );
 
     async function handleRegistrar() {
-        if (!alunoSelecionado || !descricao || !meuUsuarioId) return;
+        if (!alunoSelecionado || !descricao) return;
 
         setSalvando(true);
         setErroModal(null);
@@ -45,7 +39,6 @@ export function AbaObservacoes() {
         try {
             await criarOcorrencia({
                 alunoId: alunoSelecionado,
-                registradoPorUsuarioId: meuUsuarioId,
                 tipo,
                 descricao,
             });
