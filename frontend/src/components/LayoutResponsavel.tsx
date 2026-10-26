@@ -13,10 +13,10 @@ export function LayoutResponsavel() {
 
     return (
         <div className="min-h-screen bg-paper">
-            <aside className="fixed inset-y-0 left-0 w-60 bg-ink text-paper flex flex-col">
+            <aside className="fixed inset-y-0 left-0 w-60 bg-sidebar text-sidebar-fg flex flex-col">
                 <div className="px-6 py-8 flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-gold flex items-center justify-center">
-                        <span className="font-serif text-ink font-semibold text-sm">SE</span>
+                        <span className="font-serif text-[#1B2A4A] font-semibold text-sm">SE</span>
                     </div>
 
                     <p className="font-serif text-xl leading-tight">Sistema Escolar</p>
@@ -27,8 +27,8 @@ export function LayoutResponsavel() {
                         to="/dashboard/responsavel"
                         className={`block px-3 py-2 text-sm border-l-2 mb-1 transition-colors ${
                         location.pathname === '/dashboard/responsavel'
-                            ? 'border-gold text-paper bg-white/5'
-                            : 'border-transparent text-paper/70 hover:text-paper hover:border-paper/30'
+                            ? 'border-gold text-sidebar-fg bg-white/5'
+                            : 'border-transparent text-sidebar-muted hover:text-sidebar-fg hover:border-white/20'
                         }`}
                     >
                         Meus filhos
@@ -42,10 +42,10 @@ export function LayoutResponsavel() {
 
                     <div className="flex-1 min-w-0">
                         <p className="text-sm truncate">{sessao?.nome}</p>
-                        <p className="text-xs text-paper/50">Responsável</p>
+                        <p className="text-xs text-sidebar-muted">Responsável</p>
                     </div>
 
-                    <button onClick={handleSair} title="Sair" className="text-paper/40 hover:text-gold transition-colors shrink-0">
+                    <button onClick={handleSair} title="Sair" className="text-sidebar-muted hover:text-gold transition-colors shrink-0">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                             <polyline points="16 17 21 12 16 7"/>
