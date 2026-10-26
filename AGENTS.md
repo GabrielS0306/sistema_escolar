@@ -67,6 +67,10 @@ dotnet ef database update --project C:\projetos\sistema_escolar\backend\SistemaE
 
 Rode `migrations add` **e** `database update` — o erro `PendingModelChangesWarning` costuma significar que a migration nunca foi criada. Se o build falhar, rode `dotnet build` dentro de `SistemaEscolar.Api` para ver o erro real.
 
+- Rode o `dotnet ef` **de dentro de `backend/SistemaEscolar.Api`** (de outra pasta ele já falhou ao carregar o assembly).
+- **Pare a API antes** do `migrations add`: com ela rodando, as DLLs ficam travadas (`MSB3021`/`MSB3027`). Para só checar se compila com a API no ar, use `dotnet build -o <pasta temporária>`.
+- Migrations que mudam o significado de dados existentes levam o ajuste junto, com `migrationBuilder.Sql(...)` (exemplo: `CaminhoArquivoDocumento`).
+
 ## Domínio
 
 Entidades (todas com `Guid Id`): `Usuario`, perfis em `Entities/Perfis/` (`Aluno`, `Professor`, `Coordenador`, `Admin`, `Funcionario`, `Responsavel`), `ResponsavelAluno` (N:N), `AnoLetivo`, `Turma`, `Matricula`, `Disciplina`, `ProfessorTurmaDisciplina` ("vínculo"), `Frequencia`, `Avaliacao`, `Nota`, `SituacaoDisciplina`, `ConselhoClasse`, `VotoConselho`, `Ocorrencia`, `Comunicado`, `DocumentoUsuario`.
@@ -74,6 +78,9 @@ Entidades (todas com `Guid Id`): `Usuario`, perfis em `Entities/Perfis/` (`Aluno
 - `Perfis/` é só para entidades que representam um **papel** de usuário (têm `UsuarioId`). Entidades de estrutura/relacionamento ficam direto em `Entities/`.
 - `Usuario` guarda dados pessoais (Nome, Email, SenhaHash, Telefone, Cpf, Endereco, FotoPerfilUrl, DataNascimento, Sexo — os novos são nullable). Um usuário pode ter **vários** perfis ao mesmo tempo.
 - `Aluno.Id` ≠ `Matricula.Id` ≠ `Usuario.Id`. Confundir esses ids já causou bug real — confira qual id o endpoint espera.
+- Índices únicos: `Responsaveis.UsuarioId` (um perfil de Responsável por usuário) e `ResponsaveisAlunos(ResponsavelId, AlunoId)`.
+- `Comunicado.AutorUsuarioId` é nullable só porque comunicados antigos foram criados sem autor.
+- `DocumentoUsuario.CaminhoArquivo` guarda o **caminho no bucket**, não uma URL (o bucket é privado).
 
 ### Valores numéricos dos enums (como chegam/saem no JSON)
 
@@ -93,28 +100,45 @@ Entidades (todas com `Guid Id`): `Usuario`, perfis em `Entities/Perfis/` (`Aluno
 
 - Notas por **bimestre** (4 por ano). Cada bimestre precisa das 3 avaliações (Comportamento, Atividade, ProvaBimestral); a média do bimestre é a média simples das notas.
 - O cálculo de `SituacaoDisciplina` é **automático**, disparado dentro de `NotasController.Lancar()` (e `Importar`) quando os 4 bimestres estão completos. Média final ≥ 6 → `Aprovado`; senão → `EmRecuperacao`.
-- Prova final (`POST /api/SituacoesDisciplina/{id}/prova-final`, só Admin/Coordenador): `(MediaFinal + NotaProvaFinal) / 2 ≥ 6` → `Aprovado`, senão `Reprovado`.
-- Aluno com **3 ou mais** disciplinas `Reprovado` → `ConselhoClasse` é criado automaticamente (`PendenteVotacao`). Professores votam; Admin/Coordenador encerra manualmente e vence a maioria.
+- Prova final (`POST /api/SituacoesDisciplina/{id}/prova-final`, só Admin/Coordenador, nota de 0 a 10): `(MediaFinal + NotaProvaFinal) / 2 ≥ 6` → `Aprovado`, senão `Reprovado`. Quem está em recuperação: `GET /api/SituacoesDisciplina/recuperacao`.
+- Aluno com **3 ou mais** disciplinas `Reprovado` **no mesmo ano letivo** → `ConselhoClasse` é criado automaticamente (`PendenteVotacao`). **Um conselho por aluno por ano letivo**, mesmo que o anterior já tenha sido encerrado.
+- Conselho: só professores votam (um voto cada, imutável); Admin/Coordenador encerram (precisa de pelo menos 1 voto). **Empate aprova o aluno.**
 - Frequência é registrada em lote por turma (a "chamada").
+- Comunicados (`GET /api/Comunicados/me` filtra pelo público do usuário logado):
+
+| Papel | Vê | Pode enviar |
+|---|---|---|
+| Admin / Coordenador | todos | qualquer público |
+| Professor | Escola toda, Professores, turmas onde dá aula | só para as suas turmas |
+| Aluno | Escola toda, Alunos, a própria turma | — |
+| Responsável | Escola toda, Alunos, turmas dos filhos | — |
+| Funcionário | Escola toda | — |
+
+  O autor sempre vê o que enviou.
+- Documentos do usuário (atestados etc.): só Admin. Abrir = `GET /api/DocumentosUsuario/{id}/url`, que devolve uma **URL assinada válida por 5 minutos**.
 
 ## Convenções do backend
 
 - **DTOs sempre.** Nunca devolver entidade direto (vazaria navigation properties). Padrão: `CreateXDto` (entrada) e `XResponseDto` (saída), em `Api/DTOs/`. Ações em lote têm nome próprio (`RegistrarFrequenciaDto`, `LancarNotasDto`).
 - Controllers: `[ApiController]`, `[Route("api/[controller]")]`, `AppDbContext` injetado como `_context`, métodos `async` retornando `ActionResult<T>`. Projetar com `.Select(...)` para DTO.
 - Validar existência de FKs no `Create` e devolver `BadRequest("... não existe.")`.
-- **Autorização:** a API exige autenticação por padrão (`FallbackPolicy`). Só `Auth/login` e (opcionalmente) endpoints de docs são `[AllowAnonymous]`. Restringir ações sensíveis com `[Authorize(Roles = "...")]`. Cadastro de pessoal → Admin; estrutura acadêmica → Admin/Coordenador; lançar nota/frequência → + Professor; votar no conselho → Professor.
+- **Autorização:** a API exige autenticação por padrão (`FallbackPolicy`). Só `Auth/login` e (opcionalmente) endpoints de docs são `[AllowAnonymous]`. **Todo `POST`/`PUT` precisa de `[Authorize(Roles = "...")]`** — "só logado" não basta (já houve aluno conseguindo criar matrícula e ocorrência). Cadastro de pessoal (Admin, Coordenador, Professor, Funcionário) e gestão de usuários → Admin; Aluno, Responsável, Matrícula e estrutura acadêmica → Admin/Coordenador; lançar nota/frequência → + Professor; ocorrência → + Professor e Funcionário; votar no conselho → Professor.
+- **Identidade vem do token, nunca do corpo.** Autor de comunicado, quem registra ocorrência, professor que vota: leia de `User`, não aceite um `...UsuarioId`/`ProfessorId` no DTO (senão um usuário age em nome de outro).
+- **Dados acadêmicos de um aluno** (resumo, situações, ocorrências): checar com `AcessoAlunoService.PodeVerAluno(User, alunoId)` — equipe vê todos; aluno vê o próprio; responsável vê os filhos. Não duplicar essa regra nos controllers.
 - **JWT multi-papel:** um claim `"papel"` por papel (`RoleClaimType = "papel"`). Para ler o id do usuário logado use `User.FindFirst(ClaimTypes.NameIdentifier)` — o ASP.NET remapeia o `sub`, então `FindFirst("sub")` retorna null.
 - **Datas no PostgreSQL:** colunas `timestamp with time zone` rejeitam `DateTime.Kind == Unspecified`. Antes de salvar datas vindas de input, use `DateTime.SpecifyKind(valor, DateTimeKind.Utc)`.
 - **Decimais em importação:** parse com `CultureInfo.InvariantCulture` (senão `7.5` vira `75` no locale pt-BR).
 - Endpoints que misturam arquivo e campos usam `multipart/form-data` com `[FromForm]` e `[FromQuery]` explícitos.
-- Upload: `SupabaseStorageService.UploadArquivoAsync(arquivo, bucket, nomeArquivo)`. Buckets: `fotos-perfil` (público) e `documentos-usuario` (privado).
+- Upload (`SupabaseStorageService`): bucket público → `UploadArquivoAsync` (devolve URL pública, ex.: `fotos-perfil`); bucket privado → `UploadArquivoPrivadoAsync` (devolve o caminho; salve o caminho) + `CriarUrlAssinadaAsync` na hora de exibir (ex.: `documentos-usuario`).
+- Listagens com dados relacionados: projetar tudo num único `.Select(...)` (subconsultas com `_context.X.Count(...)` são traduzidas para SQL) em vez de laço com uma consulta por item. Quando várias ações devolvem o mesmo DTO, extraia um `Projetar(...)` privado (ex.: `ConselhosClasseController`, `ComunicadosController`).
 - Ao criar novo Controller, **reinicie a API** antes de testar (404 sem corpo costuma ser só isso).
 
 ## Convenções do frontend
 
 Padrão por recurso: `types/` → `services/` → `hooks/` → `pages/` (+ `components/` reutilizáveis).
 
-- `services/api.ts` centraliza `fetch` (`apiGet`, `apiPost`, `apiPostForm`, `apiPutForm`) e anexa o `Bearer` token lido do `sessionStorage` (`sistema-escolar-sessao`: `{ token, nome, papeis[], papelAtivo }`). Para upload (`FormData`) **não** setar `Content-Type` manualmente.
+- `services/api.ts` centraliza `fetch` (`apiGet`, `apiPost`, `apiPut`, `apiPostForm`, `apiPutForm`) e anexa o `Bearer` token lido do `sessionStorage` (`sistema-escolar-sessao`: `{ token, nome, papeis[], papelAtivo }`). Aceita resposta sem corpo (`Ok()`/`NoContent()`). Para upload (`FormData`) **não** setar `Content-Type` manualmente.
+- Erros da API chegam no front só como `Erro na requisição: <status>`; as telas mostram mensagem genérica. Para depurar, olhe o status na aba Rede (F12).
 - Hooks de dados seguem este formato (evita setState em componente desmontado e o lint `react-hooks/set-state-in-effect`):
 
 ```ts
@@ -137,10 +161,14 @@ useEffect(() => {
 ```
 
 - Hooks que precisam recarregar após uma ação expõem `recarregarDados()` (contador no array de dependências).
-- Páginas em subpastas por papel: `pages/auth|admin|aluno|professor|coordenador|responsavel|funcionario/`. Layout por área: `Layout` (admin), `LayoutAluno`, `LayoutProfessor`. Imports de dentro de subpastas usam `../../`.
-- Rotas: `/login`, `/selecionar-papel`, `/admin/*`, `/dashboard/{aluno|professor|coordenador|responsavel|funcionario|sem-perfil}`. O parâmetro da rota precisa casar com o `useParams` (já houve `:id` vs `turmaId` deixando a tela travada em "Carregando…").
+- Páginas em subpastas por papel: `pages/auth|admin|aluno|professor|coordenador|responsavel|funcionario/`. Imports de dentro de subpastas usam `../../`.
+- Layouts: `Layout` serve **Admin e Coordenador** (menu montado pelo `papelAtivo`; itens com `somenteAdmin` somem para o Coordenador); `LayoutAluno`, `LayoutProfessor`, `LayoutResponsavel`, `LayoutFuncionario`.
+- Rotas: `/login`, `/selecionar-papel`, `/admin/*`, `/coordenador/*`, `/dashboard/{aluno|professor|responsavel|funcionario|sem-perfil}`. As telas de gestão compartilhadas ficam em `rotasGestao()` no `App.tsx` — tela nova de gestão entra ali e aparece para os dois papéis. O parâmetro da rota precisa casar com o `useParams` (já houve `:id` vs `turmaId` deixando a tela travada em "Carregando…").
 - Login: 1 papel → vai direto ao dashboard; 2+ papéis → `/selecionar-papel`.
-- Registro de usuário **não é público**: só Admin/Coordenador, em `/admin/usuarios/novo`, em 2 etapas (dados gerais + foto → completar a função, ex.: matrícula do Aluno).
+- Registro de usuário **não é público**: só Admin/Coordenador, em `.../usuarios/novo`, em 2 etapas (dados gerais + foto → completar a função, ex.: matrícula do Aluno). O Coordenador só vê as funções Aluno e Responsável.
+- Componentes compartilhados já existentes — reaproveite antes de criar: `Modal`, `ResumoAlunoPainel`, `TabelaConselhos`, `ListaComunicados`, `NovoComunicadoModal`, `ComunicadosRecentes`, `NovaOcorrenciaModal`, `TabelaOcorrencias`, `DocumentosUsuarioModal`, `EditarUsuarioModal`.
+- Ação irreversível (voto, prova final, encerrar conselho): o modal mostra o resultado **antes** de confirmar, usando a mesma regra do backend (ex.: `mediaComProvaFinal` em `types/recuperacao.ts`).
+- Constantes exportadas (rótulos de enum etc.) ficam em `types/`, não em arquivos de componente — senão o lint `react-refresh/only-export-components` reclama.
 - Padrão de tela de gestão: caixa de busca à esquerda, botão que abre `Modal` com o formulário à direita, histórico em tabela embaixo (que recarrega sozinho após registrar). Exemplo completo: `pages/professor/Aba*.tsx` dentro de `TurmaDetalhe` (abas Alunos, Frequência, Notas, Observações).
 - Cuidado ao navegar entre abas: o query param `?vinculo=<id>` precisa ser preservado.
 
@@ -174,7 +202,13 @@ Branches:
 
 ## Armadilhas conhecidas
 
-- **Scalar** corrompe o header `Authorization` e perde query params em requests multipart. Para testar endpoints protegidos ou com upload, use `curl` (com `-i` para ver o status).
+- **Scalar** corrompe o header `Authorization` e perde query params em requests multipart. Para testar endpoints protegidos, use o PowerShell (abaixo) ou `curl.exe -i`.
+- **PowerShell 5.1:** `curl` é apelido de `Invoke-WebRequest` (não aceita `-H`/`-d`). Use `Invoke-RestMethod`:
+  - login: `$h = @{ Authorization = "Bearer $((Invoke-RestMethod -Method Post -Uri http://localhost:5155/api/Auth/login -ContentType 'application/json' -Body '{"email":"...","senha":"..."}').token)" }`
+  - lista + `Select-Object` mostra linha em branco: envolva em parênteses, `(Invoke-RestMethod ...) | Select-Object ...`;
+  - para ver status **e** mensagem de erro, leia o corpo de `$_.Exception.Response.GetResponseStream()` no `catch` (`$_.ErrorDetails.Message` costuma vir vazio).
+- **Supabase pausa o projeto** após ~7 dias sem uso (plano gratuito). Sintoma: `XX000: (ENOTFOUND) tenant/user postgres.<id> not found` e botão "Connect" desabilitado no painel. Solução: **Restore project** no painel (os dados são mantidos).
+- **Smart App Control** do Windows 11 bloqueava as DLLs do build (`Uma política de Controle de Aplicativo bloqueou este arquivo`, `0x800711C7`). Foi desligado na máquina do Gabriel; se o erro voltar, a causa é essa. Depois de desligar, apague `bin/` e `obj/` (o veredito fica gravado no arquivo).
 - Comandos colados em várias linhas no PowerShell/cmd costumam virar uma linha só e quebrar. Rode **um comando por vez**.
 - Usuários criados via SQL com `SenhaHash` fake (`'hash-temporario'`) **não conseguem logar**. Para um login de teste, registre via API ou gere hash BCrypt real (`crypt(senha, gen_salt('bf', 11))` com `pgcrypto`).
 - Existem várias turmas "9º A" nos dados de teste; matrícula e vínculo de professor podem apontar para turmas diferentes e a lista de alunos vir vazia — confira os `TurmaId`.
@@ -192,6 +226,10 @@ Branches:
 
 ## Estado atual e próximos passos
 
-Pronto: núcleo acadêmico completo no backend; autenticação com multi-papéis e permissões; cadastro de usuário em 2 etapas com foto; histórico de documentos; gestão de usuários pelo Admin; perfil próprio (modal); importação de notas/frequência por planilha; dashboards **Admin**, **Aluno** e **Professor** (hub com 4 abas).
+**Núcleo completo** (backend + telas): autenticação multi-papel; cadastro de usuário em 2 etapas com foto; gestão de usuários pelo Admin (editar, redefinir senha, documentos com URL assinada); perfil próprio; importação de notas/frequência por planilha; ciclo acadêmico inteiro (notas → recuperação/prova final → conselho de classe com votação); comunicados com público-alvo; ocorrências; áreas e dashboards de **todos os papéis**: Admin, Coordenador (`/coordenador`), Professor (hub com 4 abas + conselho + comunicados), Aluno, Responsável (vários filhos) e Funcionário (alunos + ocorrências).
 
-Pendente: dashboards do **Coordenador**, **Responsável** (pode reaproveitar `GET /api/Alunos/{id}/resumo`) e **Funcionário** (hoje placeholders); telas de Conselho de Classe e Comunicados no frontend; endpoint com URL assinada para visualizar documentos do bucket privado; **Módulo Financeiro**, deliberadamente deixado para o fim do projeto.
+Próximos passos:
+
+- **Módulo Financeiro** — deliberadamente deixado para o fim; é o próximo grande bloco.
+- Melhorias de qualidade, sem pressa: testes automatizados; responsividade (telas pensadas para desktop); mostrar na tela a mensagem de erro real da API (hoje genérica); preparação para produção.
+- Decisões em aberto: dar ao Funcionário acesso aos documentos (secretaria lidando com atestados) — hoje só o Admin.

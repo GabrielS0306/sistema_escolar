@@ -72,15 +72,16 @@ Um `Usuario` guarda os dados pessoais (nome, e-mail, senha, CPF, foto…) e pode
 - [x] Toda a API exige autenticação por padrão (política de fallback)
 - [x] Permissões por papel em cada ação sensível
 - [x] Cadastro de usuários restrito a Admin/Coordenador. Não há registro público.
+- [x] Ações registradas em nome de quem está logado (identidade lida do token, nunca do corpo da requisição)
 
 ### Usuários e perfis
 
 - [x] Cadastro em 2 etapas: dados gerais + foto, depois os dados do perfil (ex.: matrícula do aluno)
 - [x] Upload de foto de perfil (Supabase Storage, bucket público)
-- [x] Gestão de usuários pelo Admin (listar, editar)
+- [x] Gestão de usuários pelo Admin: editar dados e redefinir senha
 - [x] Edição do próprio perfil (modal)
-- [x] Histórico de documentos do usuário (atestados, comprovantes…) em bucket privado
-- [x] Vínculo entre responsáveis e alunos
+- [x] Documentos do usuário (atestados, comprovantes…) em bucket privado, abertos por **URL assinada que expira em 5 minutos**
+- [x] Vínculo entre responsáveis e alunos (um responsável pode ter vários filhos)
 
 ### Estrutura acadêmica
 
@@ -93,7 +94,7 @@ Um `Usuario` guarda os dados pessoais (nome, e-mail, senha, CPF, foto…) e pode
 - [x] Lançamento de notas em lote
 - [x] Importação de notas por planilha (.xlsx/.csv), com relatório de erros por linha
 - [x] Cálculo automático da situação da disciplina
-- [x] Prova final para alunos em recuperação
+- [x] Tela de recuperação com lançamento de prova final e prévia do resultado
 
 ### Frequência
 
@@ -106,17 +107,19 @@ Um `Usuario` guarda os dados pessoais (nome, e-mail, senha, CPF, foto…) e pode
 
 - [x] Ocorrências (disciplinar, saúde, atraso, elogio, outro), com registro de quem lançou
 - [x] Conselho de classe criado automaticamente, com votação dos professores e bloqueio de voto duplicado
-- [x] Encerramento do conselho por Admin/Coordenador
-- [x] Comunicados com público-alvo (escola toda, turma, professores, alunos)
+- [x] Encerramento do conselho por Admin/Coordenador, com prévia do resultado
+- [x] Comunicados com público-alvo (escola toda, turma, professores, alunos), cada usuário vê só os que são para ele
 
-### Telas (frontend)
+### Telas por papel
 
-- [x] Login e seleção de papel
-- [x] **Admin**: dashboard, usuários, alunos, professores, turmas, consulta de notas e frequência
-- [x] **Aluno**: dashboard com resumo de notas, frequência e situação
-- [x] **Professor**: minhas turmas + hub da turma com abas **Alunos**, **Frequência**, **Notas** e **Observações**
-- [ ] Dashboards de **Coordenador**, **Responsável** e **Funcionário** (hoje são placeholders)
-- [ ] Telas de Conselho de Classe e Comunicados
+| Papel | O que tem |
+|---|---|
+| **Admin** | painel; usuários (editar, redefinir senha, documentos); alunos, professores e turmas; notas e frequência; recuperação; conselho de classe; comunicados |
+| **Coordenador** | as mesmas telas de gestão do Admin (sem a gestão de usuários) + painel com pendências pedagógicas |
+| **Professor** | minhas turmas + hub da turma (abas Alunos, Frequência, Notas e Observações); votação no conselho; comunicados para as suas turmas |
+| **Aluno** | resumo de notas, frequência, situação por disciplina e comunicados |
+| **Responsável** | o mesmo resumo, para cada filho (abas quando há mais de um) |
+| **Funcionário** | consulta de alunos, registro de ocorrências (ex.: atrasos na portaria) e comunicados |
 
 ## Regras acadêmicas
 
@@ -124,8 +127,8 @@ Um `Usuario` guarda os dados pessoais (nome, e-mail, senha, CPF, foto…) e pode
 2. **Situação automática.** Quando os 4 bimestres estão completos, ao lançar ou importar notas o sistema calcula a média final:
    - média final **≥ 6** → **Aprovado**
    - média final **< 6** → **Em recuperação**
-3. **Prova final** (registrada por Admin/Coordenador): `(média final + prova final) / 2 ≥ 6` → **Aprovado**. Abaixo disso → **Reprovado**.
-4. **Conselho de classe.** O aluno com **3 ou mais** disciplinas reprovadas tem um conselho aberto automaticamente (*Pendente de votação*). Os professores votam (aprovar/reprovar) e Admin/Coordenador encerram o conselho. Vence a maioria.
+3. **Prova final** (registrada por Admin/Coordenador, nota de 0 a 10): `(média final + prova final) / 2 ≥ 6` → **Aprovado**. Abaixo disso → **Reprovado**.
+4. **Conselho de classe.** O aluno com **3 ou mais** disciplinas reprovadas **no mesmo ano letivo** tem um conselho aberto automaticamente (*Pendente de votação*), no máximo um por ano. Os professores votam (aprovar/reprovar) e Admin/Coordenador encerram o conselho. Vence a maioria; **em caso de empate, o aluno é aprovado**.
 
 ## Como executar localmente
 
@@ -220,13 +223,19 @@ Alguns endpoints de destaque:
 |---|---|
 | `POST /api/Auth/login` | login (único endpoint anônimo) |
 | `GET /api/Alunos/me/resumo` | resumo do aluno logado |
-| `GET /api/Alunos/{id}/resumo` | resumo de um aluno |
+| `GET /api/Alunos/{id}/resumo` | resumo de um aluno (equipe, o próprio aluno ou responsável vinculado) |
+| `GET /api/Responsaveis/me/alunos` | filhos do responsável logado |
 | `GET /api/ProfessorTurmaDisciplinas/minhas` | turmas/disciplinas do professor logado |
 | `POST /api/Notas/importar` | importação de notas por planilha |
 | `POST /api/Frequencias/importar` | importação de frequência por planilha |
+| `GET /api/SituacoesDisciplina/recuperacao` | disciplinas aguardando prova final |
 | `POST /api/SituacoesDisciplina/{id}/prova-final` | registra prova final |
-| `POST /api/ConselhosClasse/{id}/votar` | voto do professor |
+| `POST /api/ConselhosClasse/{id}/votar` | voto do professor logado |
 | `POST /api/ConselhosClasse/{id}/encerrar` | encerra o conselho |
+| `GET /api/Comunicados/me` | comunicados do público do usuário logado |
+| `GET /api/Ocorrencias/recentes` | últimas ocorrências da escola |
+| `PUT /api/Usuarios/{id}/senha` | Admin redefine a senha de um usuário |
+| `GET /api/DocumentosUsuario/{id}/url` | URL assinada (5 min) para abrir um documento |
 
 ### Enums no JSON
 
@@ -251,9 +260,11 @@ Enums trafegam como números:
 - JWT Bearer com validação de emissor, audiência, expiração e chave de assinatura
 - Política de fallback: toda rota exige autenticação, salvo as marcadas como anônimas
 - Autorização por papel (`[Authorize(Roles = ...)]`), com JWT multi-papel
+- Identidade de quem age (autor, votante, quem registra) sempre lida do token
+- Dados acadêmicos de um aluno visíveis só para a equipe, o próprio aluno e seus responsáveis
 - Senhas com hash BCrypt
 - Segredos em User Secrets, fora do controle de versão
-- Documentos em bucket privado do Supabase
+- Documentos em bucket privado do Supabase, acessados só por URL assinada de curta duração
 
 ## Problemas comuns
 
@@ -267,21 +278,23 @@ Enums trafegam como números:
 | Usuário criado via SQL não consegue logar | `SenhaHash` não é um hash BCrypt válido |
 | Tela em branco + `No routes matched location` | rota faltando no `App.tsx` |
 | Arquivo novo não aparece no Vite | reinicie o `npm run dev` e dê hard refresh |
+| `tenant/user postgres.<id> not found` | o Supabase pausou o projeto após dias sem uso; use **Restore project** no painel |
+| `Uma política de Controle de Aplicativo bloqueou este arquivo` | Smart App Control do Windows 11 bloqueando as DLLs do build |
+| `dotnet ef` falha com `MSB3021` (arquivo em uso) | a API está rodando; pare-a antes de gerar a migration |
+| `curl -H` não funciona no PowerShell | lá `curl` é outro comando; use `Invoke-RestMethod` ou `curl.exe` |
 
 ## Status e próximos passos
 
-**Pronto:** núcleo acadêmico completo no backend, autenticação multi-papel, cadastro em 2 etapas com foto, documentos, gestão de usuários, importação de notas/frequência e dashboards de Admin, Aluno e Professor.
+**Pronto:** o núcleo do sistema está completo. São seis papéis com áreas próprias, e o ciclo acadêmico funciona inteiro pelas telas (notas → recuperação → prova final → conselho de classe), junto com comunicados, ocorrências, documentos e gestão de usuários.
 
 **Próximos passos:**
 
-- [ ] Dashboards de Coordenador, Responsável e Funcionário
-- [ ] Telas de Conselho de Classe e Comunicados
-- [ ] URL assinada para visualizar documentos do bucket privado
+- [ ] Módulo Financeiro (mensalidades e pagamentos)
 - [ ] Notificações para responsáveis
 - [ ] Responsividade e refinamentos de UX
+- [ ] Mensagens de erro da API exibidas nas telas
 - [ ] Testes automatizados
 - [ ] Configuração para produção
-- [ ] Módulo Financeiro (deixado para o fim do projeto)
 
 ## Autor
 

@@ -3,6 +3,7 @@ import { Layout } from './components/Layout';
 import { LayoutAluno } from './components/LayoutAluno';
 import { LayoutProfessor } from './components/LayoutProfessor';
 import { LayoutResponsavel } from './components/LayoutResponsavel';
+import { LayoutFuncionario } from './components/LayoutFuncionario';
 
 import { Login } from './pages/auth/Login';
 import { SelecionarPapel } from './pages/auth/SelecionarPapel';
@@ -32,6 +33,8 @@ import { ComunicadosProfessor } from './pages/professor/ComunicadosProfessor';
 import { DashboardCoordenador } from './pages/coordenador/DashboardCoordenador';
 import { DashboardResponsavel } from './pages/responsavel/DashboardResponsavel';
 import { DashboardFuncionario } from './pages/funcionario/DashboardFuncionario';
+import { ConsultaAlunosFuncionario } from './pages/funcionario/ConsultaAlunosFuncionario';
+import { OcorrenciasFuncionario } from './pages/funcionario/OcorrenciasFuncionario';
 import { DashboardSemPerfil } from './pages/DashboardSemPerfil';
 
 function RedirecionarComVinculo() {
@@ -84,7 +87,11 @@ function App() {
           <Route path="responsavel" element={<LayoutResponsavel />}>
             <Route index element={<DashboardResponsavel />} />
           </Route>
-          <Route path="funcionario" element={<DashboardFuncionario />} />
+          <Route path="funcionario" element={<LayoutFuncionario />}>
+            <Route index element={<DashboardFuncionario />} />
+            <Route path="alunos" element={<ConsultaAlunosFuncionario />} />
+            <Route path="ocorrencias" element={<OcorrenciasFuncionario />} />
+          </Route>
           <Route path="sem-perfil" element={<DashboardSemPerfil />} />
         </Route>
 

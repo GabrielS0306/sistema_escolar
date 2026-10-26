@@ -9,15 +9,19 @@ export interface OcorrenciaRegistro {
     data: string;
 }
 
+// Quem registra é o usuário logado (o backend lê do token).
 interface CreateOcorrenciaDto {
     alunoId: string;
-    registradoPorUsuarioId: string;
     tipo: number;
     descricao: string;
 }
 
 export function getOcorrenciasPorTurma(turmaId: string): Promise<OcorrenciaRegistro[]> {
     return apiGet<OcorrenciaRegistro[]>(`/Ocorrencias/turma/${turmaId}`);
+}
+
+export function getOcorrenciasRecentes(): Promise<OcorrenciaRegistro[]> {
+    return apiGet<OcorrenciaRegistro[]>('/Ocorrencias/recentes');
 }
 
 export function criarOcorrencia(dto: CreateOcorrenciaDto) {
