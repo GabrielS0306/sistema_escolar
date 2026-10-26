@@ -1,9 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
-import { Layout } from './components/Layout';
-import { LayoutAluno } from './components/LayoutAluno';
-import { LayoutProfessor } from './components/LayoutProfessor';
-import { LayoutResponsavel } from './components/LayoutResponsavel';
-import { LayoutFuncionario } from './components/LayoutFuncionario';
+import { AppShell } from './components/layout/AppShell';
 
 import { Login } from './pages/auth/Login';
 import { SelecionarPapel } from './pages/auth/SelecionarPapel';
@@ -72,10 +68,10 @@ function App() {
 
         {/* Dashboards por papel */}
         <Route path="/dashboard">
-          <Route path="aluno" element={<LayoutAluno />}>
+          <Route path="aluno" element={<AppShell key="aluno" area="aluno" />}>
             <Route index element={<DashboardAluno />} />
           </Route>
-          <Route path="professor" element={<LayoutProfessor />}>
+          <Route path="professor" element={<AppShell key="professor" area="professor" />}>
             <Route index element={<DashboardProfessor />} />
             <Route path="conselhos" element={<ConselhosProfessor />} />
             <Route path="comunicados" element={<ComunicadosProfessor />} />
@@ -87,10 +83,10 @@ function App() {
               <Route path="observacoes" element={<AbaObservacoes />} />
             </Route>
           </Route>
-          <Route path="responsavel" element={<LayoutResponsavel />}>
+          <Route path="responsavel" element={<AppShell key="responsavel" area="responsavel" />}>
             <Route index element={<DashboardResponsavel />} />
           </Route>
-          <Route path="funcionario" element={<LayoutFuncionario />}>
+          <Route path="funcionario" element={<AppShell key="funcionario" area="funcionario" />}>
             <Route index element={<DashboardFuncionario />} />
             <Route path="alunos" element={<ConsultaAlunosFuncionario />} />
             <Route path="ocorrencias" element={<OcorrenciasFuncionario />} />
@@ -99,14 +95,14 @@ function App() {
         </Route>
 
         {/* Painel administrativo */}
-        <Route path="/admin" element={<Layout />}>
+        <Route path="/admin" element={<AppShell key="admin" area="admin" />}>
           <Route index element={<DashboardAdmin />} />
           <Route path="usuarios" element={<ListaUsuarios />} />
           {rotasGestao()}
         </Route>
 
         {/* Coordenação: mesmas telas de gestão, sem a gestão de usuários (exclusiva do Admin) */}
-        <Route path="/coordenador" element={<Layout />}>
+        <Route path="/coordenador" element={<AppShell key="coordenador" area="coordenador" />}>
           <Route index element={<DashboardCoordenador />} />
           {rotasGestao()}
         </Route>
