@@ -1,17 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../../services/authService';
+import { mensagemDeErro } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
-
-const ROTAS_POR_PAPEL: Record<string, string> = {
-    Admin: '/admin',
-    Coordenador: '/coordenador',
-    Professor: '/dashboard/professor',
-    Responsavel: '/dashboard/responsavel',
-    Aluno: '/dashboard/aluno',
-    Funcionario: '/dashboard/funcionario',
-    SemPerfil: '/dashboard/sem-perfil',
-};
+import { ROTA_POR_PAPEL } from '../../types/auth';
+import { TelaEntrada } from '../../components/auth/TelaEntrada';
+import { Input } from '../../components/ui/Campo';
+import { Button } from '../../components/ui/Button';
+import { EstadoErro } from '../../components/ui/Estrutura';
 
 export function Login() {
     const navigate = useNavigate();
@@ -34,48 +30,51 @@ export function Login() {
             } else {
                 const papel = resposta.papeis[0] ?? 'SemPerfil';
                 salvarSessao({ ...resposta, papelAtivo: papel });
-                navigate(ROTAS_POR_PAPEL[papel] ?? '/dashboard/sem-perfil');
+                navigate(ROTA_POR_PAPEL[papel] ?? '/dashboard/sem-perfil');
             }
         } catch (err) {
-            setErro('Email ou senha inválidos.' + err);
+            // 401 traz "Email ou senha inválidos." do backend; API fora do ar traz a mensagem de conexão.
+            setErro(mensagemDeErro(err));
         } finally {
             setCarregando(false);
         }
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <form onSubmit={handleSubmit} className="bg-white p-8 rounded shadow-md w-full max-w-sm">
-                <h1 className="text-2xl font-bold mb-6">Entrar</h1>
+        <TelaEntrada>
+            <h1 className="text-2xl font-semibold text-ink tracking-tight">Entrar</h1>
+            <p className="text-sm text-slate mt-1 mb-8">Use o e-mail e a senha cadastrados pela escola.</p>
 
-                {erro && <p className="text-red-500 mb-4 text-sm">{erro}</p>}
+            {erro && <div className="mb-5"><EstadoErro mensagem={erro} /></div>}
 
-                <label className="block mb-1 text-sm font-medium">Email</label>
-                <input
+            <form onSubmit={handleSubmit}>
+                <Input
+                    label="E-mail"
                     type="email"
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full border rounded p-2 mb-4"
+                    autoFocus
                 />
 
-                <label className="block mb-1 text-sm font-medium">Senha</label>
-                <input
+                <Input
+                    label="Senha"
                     type="password"
+                    autoComplete="current-password"
                     value={senha}
                     onChange={(e) => setSenha(e.target.value)}
                     required
-                    className="w-full border rounded p-2 mb-6"
                 />
 
-                <button
-                    type="submit"
-                    disabled={carregando}
-                    className="w-full bg-blue-600 text-white rounded p-2 font-medium hover:bg-blue-700 disabled:opacity-50"
-                >
+                <Button type="submit" carregando={carregando} className="w-full mt-2">
                     {carregando ? 'Entrando...' : 'Entrar'}
-                </button>
+                </Button>
             </form>
-        </div>
+
+            <p className="text-xs text-slate text-center mt-8">
+                Esqueceu a senha? Procure a secretaria da escola.
+            </p>
+        </TelaEntrada>
     );
 }

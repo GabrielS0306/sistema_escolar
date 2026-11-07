@@ -1,16 +1,137 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+/* O tema escuro é ligado pela classe .dark no <html> (ver hooks/useTema.ts). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Cores semânticas: cada uma tem um valor no tema claro e outro no escuro.
+ * Os nomes antigos (ink, paper, gold, slate) continuam valendo e também mudam com o tema,
+ * então telas ainda não migradas já ganham um modo escuro razoável.
+ */
+:root {
+    --paper: #F5F3EE;          /* fundo da aplicação */
+    --surface: #FFFFFF;        /* cards, modais, tabelas */
+    --surface-muted: #EFECE5;  /* hover, cabeçalho de tabela, áreas recuadas */
+    --ink: #1B2A4A;            /* texto forte e botão primário */
+    --slate: #5B6B82;          /* texto secundário */
+    --line: rgb(27 42 74 / 0.10);
+    --line-strong: rgb(27 42 74 / 0.20);
+    --gold: #C9A227;           /* destaque, item ativo, foco */
+    --gold-soft: rgb(201 162 39 / 0.12);
+
+    --primary: #1B2A4A;
+    --on-primary: #F7F5F0;
+
+    --sidebar: #1B2A4A;
+    --sidebar-fg: #F7F5F0;
+    --sidebar-muted: rgb(247 245 240 / 0.60);
+    --sidebar-hover: rgb(255 255 255 / 0.06);
+
+    --success: #047857;   --success-soft: #ECFDF5;
+    --warning: #B45309;   --warning-soft: #FFFBEB;
+    --danger:  #B91C1C;   --danger-soft:  #FEF2F2;
+    --info:    #1D4ED8;   --info-soft:    #EFF6FF;
+
+    --shadow-card: 0 1px 2px rgb(27 42 74 / 0.04), 0 1px 3px rgb(27 42 74 / 0.06);
+    --shadow-pop: 0 10px 30px -10px rgb(27 42 74 / 0.30);
+
+    color-scheme: light;
+}
+
+.dark {
+    --paper: #0E1525;
+    --surface: #161F33;
+    --surface-muted: #1E2940;
+    --ink: #E6EAF2;
+    --slate: #94A3B8;
+    --line: rgb(230 234 242 / 0.08);
+    --line-strong: rgb(230 234 242 / 0.16);
+    --gold: #D9B640;
+    --gold-soft: rgb(217 182 64 / 0.14);
+
+    --primary: #D9B640;
+    --on-primary: #111827;
+
+    --sidebar: #0A101D;
+    --sidebar-fg: #E6EAF2;
+    --sidebar-muted: rgb(230 234 242 / 0.55);
+    --sidebar-hover: rgb(255 255 255 / 0.05);
+
+    --success: #34D399;   --success-soft: rgb(52 211 153 / 0.12);
+    --warning: #FBBF24;   --warning-soft: rgb(251 191 36 / 0.12);
+    --danger:  #F87171;   --danger-soft:  rgb(248 113 113 / 0.12);
+    --info:    #60A5FA;   --info-soft:    rgb(96 165 250 / 0.12);
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.30);
+    --shadow-pop: 0 10px 30px -10px rgb(0 0 0 / 0.60);
+
+    color-scheme: dark;
+}
+
+@theme inline {
+    --color-paper: var(--paper);
+    --color-surface: var(--surface);
+    --color-surface-muted: var(--surface-muted);
+    --color-ink: var(--ink);
+    --color-slate: var(--slate);
+    --color-line: var(--line);
+    --color-line-strong: var(--line-strong);
+    --color-gold: var(--gold);
+    --color-gold-soft: var(--gold-soft);
+    --color-primary: var(--primary);
+    --color-on-primary: var(--on-primary);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-fg: var(--sidebar-fg);
+    --color-sidebar-muted: var(--sidebar-muted);
+    --color-sidebar-hover: var(--sidebar-hover);
+    --color-success: var(--success);
+    --color-success-soft: var(--success-soft);
+    --color-warning: var(--warning);
+    --color-warning-soft: var(--warning-soft);
+    --color-danger: var(--danger);
+    --color-danger-soft: var(--danger-soft);
+    --color-info: var(--info);
+    --color-info-soft: var(--info-soft);
+
+    --shadow-card: var(--shadow-card);
+    --shadow-pop: var(--shadow-pop);
+}
 
 @theme {
-    --color-ink: #1B2A4A;
-    --color-paper: #F7F5F0;
-    --color-gold: #C9A227;
-    --color-slate: #5B6B82;
     --font-serif: "Source Serif 4", serif;
-    --font-sans: "IBM Plex Sans", sans-serif;
+    --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+
+    --animate-entrar: entrar 180ms ease-out;
+    --animate-subir: subir 220ms ease-out;
+
+    @keyframes entrar {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes subir {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 }
 
 body {
     font-family: var(--font-sans);
-    background-color: var(--color-paper);
+    background-color: var(--paper);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* A lista aberta do <select> é desenhada pelo navegador: sem isto, no escuro ela fica com
+   fundo branco e texto claro (ilegível). */
+select option,
+select optgroup {
+    background-color: var(--surface);
+    color: var(--ink);
+}
+
+/* Transição suave só nas cores ao trocar de tema. */
+html.trocando-tema * {
+    transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease !important;
 }

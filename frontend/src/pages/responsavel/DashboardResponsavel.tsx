@@ -4,6 +4,10 @@ import { useMeusAlunos } from '../../hooks/useMeusAlunos';
 import { useResumoAluno } from '../../hooks/useResumoAluno';
 import { ResumoAlunoPainel } from '../../components/ResumoAlunoPainel';
 import { ComunicadosRecentes } from '../../components/ComunicadosRecentes';
+import { Pagina, PageHeader, Carregando, EstadoErro, EstadoVazio } from '../../components/ui/Estrutura';
+import { Card } from '../../components/ui/Card';
+import { Avatar } from '../../components/ui/Avatar';
+import { saudacao } from '../../utils/datas';
 
 export function DashboardResponsavel() {
     const { sessao } = useAuth();
@@ -14,47 +18,70 @@ export function DashboardResponsavel() {
     const alunoAtivoId = alunoSelecionadoId ?? alunos[0]?.id ?? null;
     const { resumo, carregando: carregandoResumo, erro: erroResumo } = useResumoAluno(alunoAtivoId);
 
-    if (carregando) return <p className="text-slate px-12 py-10">Carregando...</p>;
-    if (erro) return <p className="text-red-600 px-12 py-10">Erro: {erro}</p>;
-
     return (
-        <div className="px-12 py-10">
-            <p className="text-sm text-slate">Portal do responsável</p>
-            <h1 className="font-serif text-3xl text-ink mt-1">Olá, {sessao?.nome?.split(' ')[0]}.</h1>
+        <Pagina>
+            <PageHeader
+                eyebrow="Portal do responsável"
+                titulo={`${saudacao()}, ${sessao?.nome?.split(' ')[0] ?? ''}.`}
+                descricao={alunos.length > 1 ? 'Escolha um filho para ver o acompanhamento.' : 'Acompanhamento escolar.'}
+            />
 
-            {alunos.length === 0 ? (
-                <p className="text-sm text-slate mt-10">
-                    Nenhum aluno vinculado à sua conta. Procure a secretaria da escola.
-                </p>
-            ) : (
+            {carregando && <Carregando />}
+            {erro && <EstadoErro mensagem={erro} />}
+
+            {!carregando && !erro && alunos.length === 0 && (
+                <Card>
+                    <EstadoVazio
+                        icone="usuarios"
+                        titulo="Nenhum aluno vinculado à sua conta"
+                        descricao="Procure a secretaria da escola para vincular seus filhos."
+                    />
+                </Card>
+            )}
+
+            {alunos.length > 0 && (
                 <>
+                    {/* Seletor de filho: cartões com nome e matrícula (só com 2 ou mais) */}
                     {alunos.length > 1 && (
-                        <div className="flex gap-6 mt-8 border-b border-ink/10">
-                            {alunos.map((a) => (
-                                <button
-                                    key={a.id}
-                                    onClick={() => setAlunoSelecionadoId(a.id)}
-                                    className={`pb-3 -mb-px text-sm border-b-2 transition-colors ${
-                                        a.id === alunoAtivoId
-                                            ? 'border-gold text-ink'
-                                            : 'border-transparent text-slate hover:text-ink'
-                                    }`}
-                                >
-                                    {a.nomeUsuario}
-                                </button>
-                            ))}
+                        <div className="flex gap-3 overflow-x-auto pb-1 mb-6" role="tablist" aria-label="Filhos">
+                            {alunos.map((a) => {
+                                const ativo = a.id === alunoAtivoId;
+
+                                return (
+                                    <button
+                                        key={a.id}
+                                        role="tab"
+                                        aria-selected={ativo}
+                                        onClick={() => setAlunoSelecionadoId(a.id)}
+                                        className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left shrink-0 transition-colors ${
+                                            ativo ? 'border-gold bg-gold-soft/50 shadow-card' : 'border-line bg-surface hover:border-line-strong'
+                                        }`}
+                                    >
+                                        <Avatar nome={a.nomeUsuario} tamanho="md" />
+                                        <span>
+                                            <span className="block font-medium text-ink">{a.nomeUsuario}</span>
+                                            <span className="block text-xs text-slate">Matrícula {a.matricula}</span>
+                                        </span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
 
-                    {carregandoResumo && <p className="text-slate mt-10">Carregando resumo...</p>}
-                    {erroResumo && <p className="text-red-600 mt-10">Erro: {erroResumo}</p>}
+                    {carregandoResumo && <Carregando texto="Carregando acompanhamento..." />}
+                    {erroResumo && <EstadoErro mensagem={erroResumo} />}
 
                     {resumo && !carregandoResumo && !erroResumo && (
                         <>
-                            <div className="mt-8">
-                                <p className="font-serif text-2xl text-ink">{resumo.nomeAluno}</p>
-                                <p className="text-sm text-slate mt-1">Matrícula {resumo.matricula}</p>
-                            </div>
+                            {alunos.length === 1 && (
+                                <div className="flex items-center gap-3 mb-6">
+                                    <Avatar nome={resumo.nomeAluno} tamanho="md" />
+                                    <div>
+                                        <p className="font-semibold text-ink">{resumo.nomeAluno}</p>
+                                        <p className="text-xs text-slate">Matrícula {resumo.matricula}</p>
+                                    </div>
+                                </div>
+                            )}
 
                             <ResumoAlunoPainel resumo={resumo} />
                         </>
@@ -63,6 +90,6 @@ export function DashboardResponsavel() {
             )}
 
             <ComunicadosRecentes />
-        </div>
+        </Pagina>
     );
 }

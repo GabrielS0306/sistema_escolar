@@ -1,19 +1,19 @@
 import { useComunicados } from '../hooks/useComunicados';
 import { ListaComunicados } from './ListaComunicados';
+import { Card } from './ui/Card';
+import { Carregando, EstadoErro } from './ui/Estrutura';
 
 const LIMITE = 5;
 
 // Bloco para dashboards: os últimos comunicados que o usuário logado pode ver.
-export function ComunicadosRecentes() {
+export function ComunicadosRecentes({ className = 'mt-6' }: { className?: string }) {
     const { comunicados, carregando, erro } = useComunicados();
 
     return (
-        <div className="mt-12">
-            <p className="text-sm text-slate mb-4">Comunicados recentes</p>
-
-            {carregando && <p className="text-sm text-slate">Carregando...</p>}
-            {erro && <p className="text-sm text-red-600">Erro: {erro}</p>}
+        <Card titulo="Comunicados recentes" className={className}>
+            {carregando && <Carregando />}
+            {erro && <EstadoErro mensagem={erro} />}
             {!carregando && !erro && <ListaComunicados comunicados={comunicados.slice(0, LIMITE)} />}
-        </div>
+        </Card>
     );
 }

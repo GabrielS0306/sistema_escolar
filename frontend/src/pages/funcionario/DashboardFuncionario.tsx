@@ -3,59 +3,58 @@ import { useAuth } from '../../hooks/useAuth';
 import { useOcorrenciasRecentes } from '../../hooks/useOcorrenciasRecentes';
 import { TabelaOcorrencias } from '../../components/TabelaOcorrencias';
 import { ComunicadosRecentes } from '../../components/ComunicadosRecentes';
+import { Pagina, PageHeader, Carregando, EstadoErro } from '../../components/ui/Estrutura';
+import { Card } from '../../components/ui/Card';
+import { Icone, type NomeIcone } from '../../components/ui/Icone';
+import { hojePorExtenso, saudacao } from '../../utils/datas';
 
-const ATALHOS = [
-    { path: '/dashboard/funcionario/ocorrencias', label: 'Registrar ocorrência', descricao: 'Atrasos, saúde, disciplina e elogios' },
-    { path: '/dashboard/funcionario/alunos', label: 'Consultar alunos', descricao: 'Busca por nome ou matrícula' },
+const ATALHOS: { path: string; label: string; descricao: string; icone: NomeIcone }[] = [
+    { path: '/dashboard/funcionario/ocorrencias', label: 'Registrar ocorrência', descricao: 'Atrasos, saúde, disciplina e elogios', icone: 'ocorrencias' },
+    { path: '/dashboard/funcionario/alunos', label: 'Consultar alunos', descricao: 'Busca por nome ou matrícula', icone: 'alunos' },
 ];
-
-function saudacao() {
-    const hora = new Date().getHours();
-
-    if (hora < 12) return 'Bom dia';
-    if (hora < 18) return 'Boa tarde';
-
-    return 'Boa noite';
-}
 
 export function DashboardFuncionario() {
     const { sessao } = useAuth();
     const { ocorrencias, carregando, erro } = useOcorrenciasRecentes();
 
-    const hoje = new Date().toLocaleDateString('pt-BR', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-    });
-
     return (
-        <div className="max-w-4xl mx-auto px-8 py-12">
-            <p className="text-sm text-slate capitalize">{hoje}</p>
-            <h1 className="font-serif text-3xl text-ink mt-1">
-                {saudacao()}, {sessao?.nome?.split(' ')[0]}.
-            </h1>
+        <Pagina>
+            <PageHeader
+                eyebrow={hojePorExtenso()}
+                titulo={`${saudacao()}, ${sessao?.nome?.split(' ')[0] ?? ''}.`}
+                descricao="Secretaria e portaria."
+            />
 
-            <div className="mt-10 divide-y divide-ink/10 border-y border-ink/10">
+            <div className="grid gap-4 sm:grid-cols-2 mb-6">
                 {ATALHOS.map((a) => (
-                    <Link key={a.path} to={a.path} className="flex items-center justify-between py-4 group">
-                        <div>
-                            <p className="text-ink group-hover:text-gold transition-colors">{a.label}</p>
-                            <p className="text-sm text-slate">{a.descricao}</p>
-                        </div>
-                        <span className="text-slate group-hover:text-gold transition-colors">→</span>
+                    <Link
+                        key={a.path}
+                        to={a.path}
+                        className="group flex items-center gap-4 rounded-xl border border-line bg-surface shadow-card p-5 transition-colors hover:border-gold"
+                    >
+                        <span className="w-11 h-11 rounded-lg bg-gold-soft text-gold flex items-center justify-center">
+                            <Icone nome={a.icone} tamanho={20} />
+                        </span>
+                        <span className="flex-1 min-w-0">
+                            <span className="block font-semibold text-ink">{a.label}</span>
+                            <span className="block text-sm text-slate">{a.descricao}</span>
+                        </span>
+                        <Icone nome="setaDireita" className="text-slate group-hover:text-gold group-hover:translate-x-0.5 transition-all" />
                     </Link>
                 ))}
             </div>
 
-            <div className="mt-12">
-                <p className="text-sm text-slate mb-4">Últimas ocorrências</p>
-
-                {carregando && <p className="text-sm text-slate">Carregando...</p>}
-                {erro && <p className="text-sm text-red-600">Erro: {erro}</p>}
+            <Card
+                titulo="Últimas ocorrências"
+                acoes={<Link to="/dashboard/funcionario/ocorrencias" className="text-sm font-medium text-gold hover:underline">Ver todas</Link>}
+                semPadding
+            >
+                {carregando && <Carregando />}
+                {erro && <div className="px-5 pb-5"><EstadoErro mensagem={erro} /></div>}
                 {!carregando && !erro && <TabelaOcorrencias ocorrencias={ocorrencias.slice(0, 5)} />}
-            </div>
+            </Card>
 
             <ComunicadosRecentes />
-        </div>
+        </Pagina>
     );
 }

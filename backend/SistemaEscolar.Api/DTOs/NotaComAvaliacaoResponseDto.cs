@@ -6,4 +6,5 @@ public class NotaComAvaliacaoResponseDto
     public decimal Valor { get; set; }
     public int Bimestre { get; set; }
     public string NomeAvaliacao { get; set; } = string.Empty;
+    public string Disciplina { get; set; } = string.Empty;
 }

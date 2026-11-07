@@ -1,36 +1,71 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAlunos } from '../../hooks/useAlunos';
+import { Pagina, PageHeader, BarraFerramentas, Carregando, EstadoErro, EstadoVazio } from '../../components/ui/Estrutura';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { CampoBusca } from '../../components/ui/Campo';
+import { Avatar } from '../../components/ui/Avatar';
+import { Tabela, TabelaCabecalho, TabelaCorpo, Th, Tr, Td } from '../../components/ui/Tabela';
 
 export function ListaAlunos() {
+    const navigate = useNavigate();
     const { alunos, carregando, erro } = useAlunos();
+    const [busca, setBusca] = useState('');
 
-    if (carregando) return <p className="text-slate px-12 py-10">Carregando...</p>;
-    if (erro) return <p className="text-red-600 px-12 py-10">Erro: {erro}</p>;
+    const termo = busca.toLowerCase();
+    const filtrados = alunos.filter((a) => `${a.nomeUsuario} ${a.matricula}`.toLowerCase().includes(termo));
 
     return (
-        <div className="px-12 py-10">
-            <p className="text-sm text-slate">Gestão de pessoas</p>
-            <h1 className="font-serif text-3xl text-ink mt-1">Alunos</h1>
+        <Pagina>
+            <PageHeader
+                eyebrow="Pessoas"
+                titulo="Alunos"
+                descricao={carregando ? undefined : `${alunos.length} alunos cadastrados.`}
+                // Relativo à área: vira /admin/usuarios/novo ou /coordenador/usuarios/novo.
+                acoes={<Button icone="novoUsuario" onClick={() => navigate('../usuarios/novo', { relative: 'path' })}>Novo aluno</Button>}
+            />
 
-            <table className="w-full mt-10 border-t border-ink/10">
-                <thead>
-                    <tr className="border-b border-ink/10 text-left">
-                        <th className="py-3 text-sm font-normal text-slate">Nome</th>
-                        <th className="py-3 text-sm font-normal text-slate">Matrícula</th>
-                        <th className="py-3 text-sm font-normal text-slate">Data de nascimento</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {alunos.map((aluno) => (
-                        <tr key={aluno.id} className="border-b border-ink/10 hover:bg-ink/5 transition-colors">
-                            <td className="py-3 text-ink">{aluno.nomeUsuario}</td>
-                            <td className="py-3 text-slate">{aluno.matricula}</td>
-                            <td className="py-3 text-slate">
-                                {new Date(aluno.dataNascimento).toLocaleDateString('pt-BR')}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+            <Card semPadding>
+                <div className="p-4">
+                    <BarraFerramentas>
+                        <CampoBusca value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou matrícula..." />
+                    </BarraFerramentas>
+                </div>
+
+                {carregando && <Carregando />}
+                {erro && <div className="px-4 pb-4"><EstadoErro mensagem={erro} /></div>}
+
+                {!carregando && !erro && (
+                    filtrados.length === 0 ? (
+                        <EstadoVazio
+                            icone={busca ? 'busca' : 'alunos'}
+                            titulo={busca ? 'Nenhum aluno encontrado' : 'Nenhum aluno cadastrado'}
+                            descricao={busca ? 'Tente outro nome ou matrícula.' : 'Cadastre o primeiro aluno pelo botão "Novo aluno".'}
+                        />
+                    ) : (
+                        <Tabela>
+                            <TabelaCabecalho>
+                                <Th>Aluno</Th>
+                                <Th>Matrícula</Th>
+                            </TabelaCabecalho>
+                            <TabelaCorpo>
+                                {filtrados.map((a) => (
+                                    <Tr key={a.id}>
+                                        <Td>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar nome={a.nomeUsuario} />
+                                                <span className="font-medium">{a.nomeUsuario}</span>
+                                            </div>
+                                        </Td>
+                                        <Td className="text-slate tabular-nums">{a.matricula}</Td>
+                                    </Tr>
+                                ))}
+                            </TabelaCorpo>
+                        </Tabela>
+                    )
+                )}
+            </Card>
+        </Pagina>
     );
 }

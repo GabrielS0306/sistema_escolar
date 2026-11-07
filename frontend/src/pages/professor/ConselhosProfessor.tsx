@@ -1,13 +1,21 @@
 import { useState } from 'react';
 import { useConselhos } from '../../hooks/useConselhos';
+import { useToast } from '../../hooks/useToast';
 import { votarConselho } from '../../services/conselhoService';
+import { mensagemDeErro } from '../../services/api';
 import { TabelaConselhos } from '../../components/TabelaConselhos';
 import { Modal } from '../../components/Modal';
+import { Pagina, PageHeader, BarraFerramentas, Carregando, EstadoErro, Aviso } from '../../components/ui/Estrutura';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { CampoBusca } from '../../components/ui/Campo';
 import type { ConselhoClasse } from '../../types/conselho';
 
 const VOTO_LABEL = ['Aprovar', 'Reprovar'];
 
 export function ConselhosProfessor() {
+    const toast = useToast();
     const { conselhos, carregando, erro, recarregarDados } = useConselhos();
 
     const [busca, setBusca] = useState('');
@@ -15,11 +23,10 @@ export function ConselhosProfessor() {
     const [salvando, setSalvando] = useState(false);
     const [erroModal, setErroModal] = useState<string | null>(null);
 
-    const filtrados = conselhos.filter((c) =>
-        c.nomeAluno.toLowerCase().includes(busca.toLowerCase())
-    );
+    const filtrados = conselhos.filter((c) => c.nomeAluno.toLowerCase().includes(busca.toLowerCase()));
     const pendentes = filtrados.filter((c) => c.resultado === 0);
     const encerrados = filtrados.filter((c) => c.resultado !== 0);
+    const aguardandoMeuVoto = pendentes.filter((c) => c.meuVoto === null).length;
 
     function abrirModal(conselho: ConselhoClasse) {
         setErroModal(null);
@@ -34,103 +41,89 @@ export function ConselhosProfessor() {
 
         try {
             await votarConselho(conselhoSelecionado.id, voto);
+            toast.sucesso(`Voto registrado: ${VOTO_LABEL[voto].toLowerCase()} ${conselhoSelecionado.nomeAluno}.`);
             setConselhoSelecionado(null);
             recarregarDados();
-        } catch {
-            setErroModal('Não foi possível registrar o voto.');
+        } catch (err) {
+            setErroModal(mensagemDeErro(err, 'Não foi possível registrar o voto.'));
         } finally {
             setSalvando(false);
         }
     }
 
     return (
-        <div className="px-12 py-10">
-            <p className="text-sm text-slate">Diário de classe</p>
-            <h1 className="font-serif text-3xl text-ink mt-1">Conselho de classe</h1>
-
-            <input
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Buscar por aluno..."
-                className="w-72 h-11 border border-ink/20 rounded px-3 mt-8 focus:outline-none focus:border-gold"
+        <Pagina>
+            <PageHeader
+                eyebrow="Diário de classe"
+                titulo="Conselho de classe"
+                descricao="Vote nos alunos que fecharam o ano com 3 ou mais reprovações. Cada professor vota uma vez."
             />
 
-            {carregando && <p className="text-slate mt-10">Carregando...</p>}
-            {erro && <p className="text-red-600 mt-10">Erro: {erro}</p>}
+            <div className="mb-4">
+                <BarraFerramentas>
+                    <CampoBusca value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por aluno..." />
+                </BarraFerramentas>
+            </div>
+
+            {carregando && <Carregando />}
+            {erro && <EstadoErro mensagem={erro} />}
 
             {!carregando && !erro && (
-                <>
-                    <div className="mt-10">
-                        <p className="text-sm text-slate mb-4">Aguardando votação</p>
+                <div className="grid gap-6">
+                    <Card
+                        titulo="Aguardando votação"
+                        acoes={aguardandoMeuVoto > 0 && <Badge tom="alerta">{aguardandoMeuVoto} sem o seu voto</Badge>}
+                        semPadding
+                    >
                         <TabelaConselhos
                             conselhos={pendentes}
                             mensagemVazia="Nenhum conselho aguardando votação."
                             renderAcao={(c) =>
                                 c.meuVoto === null ? (
-                                    <button
-                                        onClick={() => abrirModal(c)}
-                                        className="bg-ink text-paper rounded px-4 py-2 text-sm font-medium hover:bg-ink/90"
-                                    >
-                                        Votar
-                                    </button>
+                                    <Button tamanho="sm" onClick={() => abrirModal(c)}>Votar</Button>
                                 ) : (
-                                    <span className="text-slate">Seu voto: {VOTO_LABEL[c.meuVoto]}</span>
+                                    <Badge tom={c.meuVoto === 0 ? 'sucesso' : 'perigo'}>Seu voto: {VOTO_LABEL[c.meuVoto]}</Badge>
                                 )
                             }
                         />
-                    </div>
+                    </Card>
 
-                    <div className="mt-12">
-                        <p className="text-sm text-slate mb-4">Encerrados</p>
+                    <Card titulo="Encerrados" semPadding>
                         <TabelaConselhos conselhos={encerrados} mensagemVazia="Nenhum conselho encerrado ainda." />
-                    </div>
-                </>
+                    </Card>
+                </div>
             )}
 
             <Modal
                 aberto={conselhoSelecionado !== null}
                 onFechar={() => setConselhoSelecionado(null)}
                 titulo="Votar no conselho"
+                descricao={conselhoSelecionado ? `${conselhoSelecionado.nomeAluno} · Matrícula ${conselhoSelecionado.matricula} · ${conselhoSelecionado.anoLetivo}` : undefined}
             >
                 {conselhoSelecionado && (
                     <>
-                        {erroModal && (
-                            <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2 mb-4">{erroModal}</p>
-                        )}
+                        {erroModal && <div className="mb-4"><EstadoErro mensagem={erroModal} /></div>}
 
-                        <p className="font-serif text-xl text-ink">{conselhoSelecionado.nomeAluno}</p>
-                        <p className="text-sm text-slate">
-                            Matrícula {conselhoSelecionado.matricula} · Ano letivo {conselhoSelecionado.anoLetivo}
-                        </p>
+                        <p className="text-sm font-medium text-ink mb-2">Disciplinas reprovadas</p>
+                        <div className="flex flex-wrap gap-2 mb-5">
+                            {conselhoSelecionado.disciplinasReprovadas.map((d) => <Badge key={d} tom="perigo">{d}</Badge>)}
+                        </div>
 
-                        <p className="text-sm text-slate mt-6 mb-2">Disciplinas reprovadas</p>
-                        <ul className="border-t border-ink/10 mb-6">
-                            {conselhoSelecionado.disciplinasReprovadas.map((d) => (
-                                <li key={d} className="py-2 border-b border-ink/10 text-ink">{d}</li>
-                            ))}
-                        </ul>
+                        <div className="mb-5">
+                            <Aviso tom="alerta">O voto não pode ser alterado depois de registrado.</Aviso>
+                        </div>
 
-                        <p className="text-sm text-slate mb-4">O voto não pode ser alterado depois de registrado.</p>
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => handleVotar(0)}
-                                disabled={salvando}
-                                className="bg-ink text-paper rounded px-5 py-2.5 text-sm font-medium hover:bg-ink/90 disabled:opacity-50"
-                            >
-                                Aprovar aluno
-                            </button>
-                            <button
-                                onClick={() => handleVotar(1)}
-                                disabled={salvando}
-                                className="border border-red-700 text-red-700 rounded px-5 py-2.5 text-sm font-medium hover:bg-red-50 disabled:opacity-50"
-                            >
+                        <div className="grid grid-cols-2 gap-3">
+                            <Button variante="perigo" onClick={() => handleVotar(1)} disabled={salvando} className="h-12">
                                 Reprovar aluno
-                            </button>
+                            </Button>
+                            <Button onClick={() => handleVotar(0)} carregando={salvando} className="h-12" icone="check">
+                                Aprovar aluno
+                            </Button>
                         </div>
                     </>
                 )}
             </Modal>
-        </div>
+        </Pagina>
     );
 }

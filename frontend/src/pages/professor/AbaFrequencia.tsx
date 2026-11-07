@@ -2,10 +2,21 @@ import { useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useAlunosPorTurma } from '../../hooks/useAlunosPorTurma';
 import { useFrequenciaTurma } from '../../hooks/useFrequenciaTurma';
+import { useToast } from '../../hooks/useToast';
 import { registrarChamada } from '../../services/frequenciaProfessorService';
+import { mensagemDeErro } from '../../services/api';
 import { Modal } from '../../components/Modal';
+import { BarraFerramentas, Carregando, EstadoErro, EstadoVazio } from '../../components/ui/Estrutura';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { CampoBusca } from '../../components/ui/Campo';
+import { Avatar } from '../../components/ui/Avatar';
+import { Tabela, TabelaCabecalho, TabelaCorpo, Th, Tr, Td } from '../../components/ui/Tabela';
+import { dataCurta } from '../../utils/datas';
 
 export function AbaFrequencia() {
+    const toast = useToast();
     const { turmaId } = useParams<{ turmaId: string }>();
     const [searchParams] = useSearchParams();
     const vinculoId = searchParams.get('vinculo');
@@ -19,12 +30,22 @@ export function AbaFrequencia() {
     const [salvando, setSalvando] = useState(false);
     const [erroModal, setErroModal] = useState<string | null>(null);
 
-    const frequenciasFiltradas = frequencias.filter((f) =>
-        f.nomeAluno.toLowerCase().includes(busca.toLowerCase())
-    );
+    const frequenciasFiltradas = frequencias
+        .filter((f) => f.nomeAluno.toLowerCase().includes(busca.toLowerCase()))
+        .sort((a, b) => b.data.localeCompare(a.data));
 
-    function togglePresenca(alunoId: string) {
-        setPresencas((prev) => ({ ...prev, [alunoId]: !(prev[alunoId] ?? true) }));
+    // Todo mundo começa presente: o professor só marca quem faltou.
+    const estaPresente = (alunoId: string) => presencas[alunoId] ?? true;
+    const totalFaltas = alunos.filter((a) => !estaPresente(a.alunoId)).length;
+
+    function marcar(alunoId: string, presente: boolean) {
+        setPresencas((prev) => ({ ...prev, [alunoId]: presente }));
+    }
+
+    function abrirChamada() {
+        setPresencas({});
+        setErroModal(null);
+        setModalAberto(true);
     }
 
     async function handleRegistrarChamada() {
@@ -37,113 +58,130 @@ export function AbaFrequencia() {
             await registrarChamada({
                 professorTurmaDisciplinaId: vinculoId,
                 data: new Date().toISOString(),
-                presencas: alunos.map((a) => ({
-                alunoId: a.alunoId,
-                presente: presencas[a.alunoId] ?? true,
-                })),
+                presencas: alunos.map((a) => ({ alunoId: a.alunoId, presente: estaPresente(a.alunoId) })),
             });
 
+            toast.sucesso(`Chamada registrada: ${alunos.length - totalFaltas} presentes, ${totalFaltas} ${totalFaltas === 1 ? 'falta' : 'faltas'}.`);
             setModalAberto(false);
-            setPresencas({});
             recarregarDados();
-        } catch {
-            setErroModal('Não foi possível registrar a chamada.');
+        } catch (err) {
+            setErroModal(mensagemDeErro(err, 'Não foi possível registrar a chamada.'));
         } finally {
             setSalvando(false);
         }
     }
 
     return (
-        <div>
-            <div className="flex items-center justify-between mb-8">
-                <input
-                    value={busca}
-                    onChange={(e) => setBusca(e.target.value)}
-                    placeholder="Buscar por aluno..."
-                    className="w-72 h-11 border border-ink/20 rounded px-3 focus:outline-none focus:border-gold"
-                />
+        <>
+            <Card semPadding>
+                <div className="p-4">
+                    <BarraFerramentas>
+                        <CampoBusca value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por aluno..." />
+                        <Button icone="frequencia" onClick={abrirChamada} disabled={alunos.length === 0}>Fazer chamada de hoje</Button>
+                    </BarraFerramentas>
+                </div>
 
-                <button
-                    onClick={() => setModalAberto(true)}
-                    className="bg-ink text-paper rounded px-5 py-2.5 text-sm font-medium hover:bg-ink/90"
-                >
-                    Registrar chamada
-                </button>
-            </div>
+                {carregando && <Carregando />}
+                {erro && <div className="px-4 pb-4"><EstadoErro mensagem={erro} /></div>}
 
-            {carregando && <p className="text-slate">Carregando...</p>}
-            {erro && <p className="text-red-600">Erro: {erro}</p>}
-
-            {!carregando && !erro && (
-                frequenciasFiltradas.length === 0 ? (
-                    <p className="text-sm text-slate">Nenhum registro de frequência encontrado.</p>
-                ) : (
-                    <table className="w-full border-t border-ink/10">
-                        <thead>
-                            <tr className="border-b border-ink/10 text-left">
-                                <th className="py-3 text-sm font-normal text-slate">Aluno</th>
-                                <th className="py-3 text-sm font-normal text-slate">Data</th>
-                                <th className="py-3 text-sm font-normal text-slate">Presença</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            {frequenciasFiltradas.map((f) => (
-                                <tr key={f.id} className="border-b border-ink/10">
-                                    <td className="py-3 text-ink">{f.nomeAluno}</td>
-                                    <td className="py-3 text-slate">{new Date(f.data).toLocaleDateString('pt-BR')}</td>
-                                    <td className="py-3">
-                                        {f.presente ? (
-                                            <span className="text-sm text-emerald-700">Presente</span>
-                                        ) : (
-                                            <span className="text-sm text-red-700">Falta</span>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )
-            )}
-
-            <Modal aberto={modalAberto} onFechar={() => setModalAberto(false)} titulo="Registrar chamada de hoje">
-                {erroModal && (
-                    <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2 mb-4">{erroModal}</p>
+                {!carregando && !erro && (
+                    frequenciasFiltradas.length === 0 ? (
+                        <EstadoVazio
+                            icone="frequencia"
+                            titulo={busca ? 'Nenhum registro encontrado' : 'Nenhuma chamada registrada ainda'}
+                            descricao={busca ? undefined : 'Clique em "Fazer chamada de hoje" para registrar a primeira.'}
+                        />
+                    ) : (
+                        <Tabela>
+                            <TabelaCabecalho>
+                                <Th>Aluno</Th>
+                                <Th>Data</Th>
+                                <Th>Presença</Th>
+                            </TabelaCabecalho>
+                            <TabelaCorpo>
+                                {frequenciasFiltradas.map((f) => (
+                                    <Tr key={f.id}>
+                                        <Td className="font-medium">{f.nomeAluno}</Td>
+                                        <Td className="text-slate tabular-nums">{dataCurta(f.data)}</Td>
+                                        <Td>
+                                            {f.presente
+                                                ? <Badge tom="sucesso" comPonto>Presente</Badge>
+                                                : <Badge tom="perigo" comPonto>Falta</Badge>}
+                                        </Td>
+                                    </Tr>
+                                ))}
+                            </TabelaCorpo>
+                        </Tabela>
+                    )
                 )}
+            </Card>
 
-                <table className="w-full border-t border-ink/10 mb-6">
-                    <thead>
-                        <tr className="border-b border-ink/10 text-left">
-                            <th className="py-3 text-sm font-normal text-slate">Nome</th>
-                            <th className="py-3 text-sm font-normal text-slate">Presente</th>
-                        </tr>
-                    </thead>
+            <Modal
+                aberto={modalAberto}
+                onFechar={() => setModalAberto(false)}
+                titulo="Chamada de hoje"
+                descricao={new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+            >
+                {erroModal && <div className="mb-4"><EstadoErro mensagem={erroModal} /></div>}
 
-                    <tbody>
-                        {alunos.map((a) => (
-                            <tr key={a.alunoId} className="border-b border-ink/10">
-                                <td className="py-3 text-ink">{a.nomeAluno}</td>
-                                <td className="py-3">
-                                    <input
-                                        type="checkbox"
-                                        checked={presencas[a.alunoId] ?? true}
-                                        onChange={() => togglePresenca(a.alunoId)}
-                                        className="w-4 h-4 accent-ink"
-                                    />
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                        
-                <button
-                    onClick={handleRegistrarChamada}
-                    disabled={salvando}
-                    className="bg-ink text-paper rounded px-5 py-2.5 text-sm font-medium hover:bg-ink/90 disabled:opacity-50"
-                >
-                    {salvando ? 'Registrando...' : 'Confirmar chamada'}
-                </button>
+                <div className="flex items-center justify-between gap-3 mb-3">
+                    <p className="text-sm">
+                        <span className="font-semibold text-success">{alunos.length - totalFaltas} presentes</span>
+                        <span className="text-slate"> · </span>
+                        <span className={`font-semibold ${totalFaltas > 0 ? 'text-danger' : 'text-slate'}`}>
+                            {totalFaltas} {totalFaltas === 1 ? 'falta' : 'faltas'}
+                        </span>
+                    </p>
+                    <Button tamanho="sm" variante="fantasma" onClick={() => setPresencas({})} disabled={totalFaltas === 0}>
+                        Todos presentes
+                    </Button>
+                </div>
+
+                <ul className="divide-y divide-line border-y border-line mb-5">
+                    {alunos.map((a) => {
+                        const presente = estaPresente(a.alunoId);
+
+                        return (
+                            <li key={a.alunoId} className="flex items-center justify-between gap-3 py-2.5">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <Avatar nome={a.nomeAluno} />
+                                    <span className={`text-sm truncate ${presente ? 'text-ink' : 'text-danger font-medium'}`}>{a.nomeAluno}</span>
+                                </div>
+
+                                <div className="inline-flex rounded-lg bg-surface-muted p-0.5 shrink-0" role="radiogroup" aria-label={`Presença de ${a.nomeAluno}`}>
+                                    <button
+                                        role="radio"
+                                        aria-checked={presente}
+                                        onClick={() => marcar(a.alunoId, true)}
+                                        className={`px-3 h-8 rounded-md text-xs font-medium transition-colors ${
+                                            presente ? 'bg-success text-white shadow-card' : 'text-slate hover:text-ink'
+                                        }`}
+                                    >
+                                        Presente
+                                    </button>
+                                    <button
+                                        role="radio"
+                                        aria-checked={!presente}
+                                        onClick={() => marcar(a.alunoId, false)}
+                                        className={`px-3 h-8 rounded-md text-xs font-medium transition-colors ${
+                                            !presente ? 'bg-danger text-white shadow-card' : 'text-slate hover:text-ink'
+                                        }`}
+                                    >
+                                        Falta
+                                    </button>
+                                </div>
+                            </li>
+                        );
+                    })}
+                </ul>
+
+                <div className="flex justify-end gap-3">
+                    <Button variante="secundario" onClick={() => setModalAberto(false)}>Cancelar</Button>
+                    <Button onClick={handleRegistrarChamada} carregando={salvando} icone="check">
+                        {salvando ? 'Registrando...' : 'Confirmar chamada'}
+                    </Button>
+                </div>
             </Modal>
-        </div>
+        </>
     );
 }

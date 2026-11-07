@@ -1,7 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Modal } from './Modal';
 import { getMe, atualizarMe } from '../services/authService';
+import { mensagemDeErro } from '../services/api';
+import { useToast } from '../hooks/useToast';
 import type { UsuarioDetalhado } from '../types/usuario';
+import { Avatar } from './ui/Avatar';
+import { Button } from './ui/Button';
+import { Input } from './ui/Campo';
+import { Carregando, EstadoErro } from './ui/Estrutura';
 
 interface PerfilModalProps {
     aberto: boolean;
@@ -9,6 +15,7 @@ interface PerfilModalProps {
 }
 
 export function PerfilModal({ aberto, onFechar }: PerfilModalProps) {
+    const toast = useToast();
     const [usuario, setUsuario] = useState<UsuarioDetalhado | null>(null);
     const [carregando, setCarregando] = useState(false);
     const [salvando, setSalvando] = useState(false);
@@ -37,8 +44,8 @@ export function PerfilModal({ aberto, onFechar }: PerfilModalProps) {
                     setTelefone(dados.telefone ?? '');
                     setEndereco(dados.endereco ?? '');
                 }
-            } catch {
-                if (!cancelado) setErro('Não foi possível carregar o perfil.');
+            } catch (err) {
+                if (!cancelado) setErro(mensagemDeErro(err, 'Não foi possível carregar o perfil.'));
             } finally {
                 if (!cancelado) setCarregando(false);
             }
@@ -56,8 +63,9 @@ export function PerfilModal({ aberto, onFechar }: PerfilModalProps) {
             const atualizado = await atualizarMe({ telefone, endereco, foto });
             setUsuario(atualizado);
             setFoto(null);
-        } catch {
-            setErro('Não foi possível salvar as alterações.');
+            toast.sucesso('Perfil atualizado.');
+        } catch (err) {
+            setErro(mensagemDeErro(err, 'Não foi possível salvar as alterações.'));
         } finally {
             setSalvando(false);
         }
@@ -65,57 +73,35 @@ export function PerfilModal({ aberto, onFechar }: PerfilModalProps) {
 
     return (
         <Modal aberto={aberto} onFechar={onFechar} titulo="Meu perfil">
-            {carregando && <p className="text-sm text-slate">Carregando...</p>}
-            {erro && (
-                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2 mb-4">{erro}</p>
-            )}
+            {carregando && <Carregando />}
+            {erro && <div className="mb-4"><EstadoErro mensagem={erro} /></div>}
 
             {usuario && !carregando && (
                 <form onSubmit={handleSalvar}>
                     <div className="flex items-center gap-4 mb-6">
-                        <img
-                            src={fotoPreview ?? usuario.fotoPerfilUrl ?? undefined}
-                            className="w-16 h-16 rounded-full object-cover bg-ink/10"
-                        />
-                        <label className="text-sm text-gold cursor-pointer hover:underline">
-                            Trocar foto
-
-                            <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => setFoto(e.target.files?.[0] ?? null)}
-                            />
-                        </label>
+                        {fotoPreview || usuario.fotoPerfilUrl ? (
+                            <img src={fotoPreview ?? usuario.fotoPerfilUrl ?? undefined} alt="" className="w-16 h-16 rounded-full object-cover" />
+                        ) : (
+                            <span className="scale-150 origin-left ml-2"><Avatar nome={usuario.nome} tamanho="md" /></span>
+                        )}
+                        <div className="ml-2 min-w-0">
+                            <p className="font-semibold text-ink truncate">{usuario.nome}</p>
+                            <p className="text-sm text-slate truncate">{usuario.email}</p>
+                            <label className="text-sm font-medium text-gold cursor-pointer hover:underline">
+                                Trocar foto
+                                <input type="file" accept="image/*" className="hidden" onChange={(e) => setFoto(e.target.files?.[0] ?? null)} />
+                            </label>
+                        </div>
                     </div>
 
-                    <p className="text-sm text-slate mb-1">Nome</p>
-                    <p className="text-ink mb-4">{usuario.nome}</p>
+                    <Input label="Telefone" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+                    <Input label="Endereço" value={endereco} onChange={(e) => setEndereco(e.target.value)} />
+                    <p className="text-xs text-slate mb-5">Nome e e-mail só podem ser alterados pela secretaria.</p>
 
-                    <p className="text-sm text-slate mb-1">Email</p>
-                    <p className="text-ink mb-4">{usuario.email}</p>
-
-                    <label className="block text-sm text-slate mb-1">Telefone</label>
-                    <input
-                        value={telefone}
-                        onChange={(e) => setTelefone(e.target.value)}
-                        className="w-full border border-ink/20 rounded px-3 py-2 mb-4 focus:outline-none focus:border-gold"
-                    />
-
-                    <label className="block text-sm text-slate mb-1">Endereço</label>
-                    <input
-                        value={endereco}
-                        onChange={(e) => setEndereco(e.target.value)}
-                        className="w-full border border-ink/20 rounded px-3 py-2 mb-6 focus:outline-none focus:border-gold"
-                    />
-
-                    <button
-                        type="submit"
-                        disabled={salvando}
-                        className="bg-ink text-paper rounded px-5 py-2.5 text-sm font-medium hover:bg-ink/90 disabled:opacity-50"
-                    >
-                        {salvando ? 'Salvando...' : 'Salvar alterações'}
-                    </button>
+                    <div className="flex justify-end gap-3">
+                        <Button variante="secundario" onClick={onFechar}>Fechar</Button>
+                        <Button type="submit" carregando={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</Button>
+                    </div>
                 </form>
             )}
         </Modal>

@@ -3,6 +3,11 @@ import { Modal } from './Modal';
 import { useDocumentosUsuario } from '../hooks/useDocumentosUsuario';
 import { enviarDocumento, getUrlDocumento } from '../services/documentoService';
 import { TIPO_DOCUMENTO_LABEL } from '../types/documento';
+import { Button } from './ui/Button';
+import { Badge } from './ui/Badge';
+import { Icone } from './ui/Icone';
+import { Input, Select } from './ui/Campo';
+import { Aviso, Carregando, EstadoErro, EstadoVazio } from './ui/Estrutura';
 
 interface DocumentosUsuarioModalProps {
     usuario: { id: string; nome: string } | null;
@@ -69,86 +74,85 @@ export function DocumentosUsuarioModal({ usuario, onFechar }: DocumentosUsuarioM
         }
     }
 
-    const inputClasses = 'w-full h-11 border border-ink/20 rounded px-3 mb-4 focus:outline-none focus:border-gold';
-    const labelClasses = 'block text-sm text-slate mb-1';
-
     return (
-        <Modal aberto={usuario !== null} onFechar={handleFechar} titulo={`Documentos — ${usuario?.nome ?? ''}`}>
-            {aviso && (
-                <p className={`text-sm rounded px-3 py-2 mb-4 border ${aviso.ok ? 'text-ink bg-gold/10 border-gold/30' : 'text-red-700 bg-red-50 border-red-200'}`}>
-                    {aviso.texto}
-                </p>
-            )}
+        <Modal aberto={usuario !== null} onFechar={handleFechar} titulo="Documentos" descricao={usuario?.nome} tamanho="lg">
+            {aviso && <div className="mb-4"><Aviso tom={aviso.ok ? 'sucesso' : 'perigo'}>{aviso.texto}</Aviso></div>}
 
-            <p className="font-serif text-lg text-ink mb-4">Enviar documento</p>
+            <div className="rounded-xl border border-line bg-surface-muted/40 p-4">
+                <p className="font-semibold text-ink mb-3">Enviar documento</p>
 
-            <label className={labelClasses}>Tipo</label>
-            <select value={tipo} onChange={(e) => setTipo(Number(e.target.value))} className={inputClasses}>
-                {TIPO_DOCUMENTO_LABEL.map((label, valor) => (
-                    <option key={valor} value={valor}>{label}</option>
-                ))}
-            </select>
+                <div className="grid sm:grid-cols-[180px_1fr] gap-x-4">
+                    <Select label="Tipo" value={tipo} onChange={(e) => setTipo(Number(e.target.value))}>
+                        {TIPO_DOCUMENTO_LABEL.map((label, valor) => (
+                            <option key={valor} value={valor}>{label}</option>
+                        ))}
+                    </Select>
+                    <Input
+                        label="Descrição"
+                        value={descricao}
+                        onChange={(e) => setDescricao(e.target.value)}
+                        placeholder="Ex.: Atestado de 3 dias — gripe"
+                    />
+                </div>
 
-            <label className={labelClasses}>Descrição</label>
-            <input
-                value={descricao}
-                onChange={(e) => setDescricao(e.target.value)}
-                placeholder="Ex.: Atestado de 3 dias — gripe"
-                className={inputClasses}
-            />
+                <label className="flex items-center gap-3 rounded-lg border border-dashed border-line-strong bg-surface px-4 py-3 mb-4 cursor-pointer hover:border-gold transition-colors">
+                    <Icone nome="upload" className="text-slate" />
+                    <span className="text-sm text-slate truncate flex-1">{arquivo ? arquivo.name : 'Escolher arquivo (PDF ou imagem)'}</span>
+                    <input
+                        key={chaveArquivo}
+                        type="file"
+                        accept=".pdf,image/*"
+                        onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
+                        className="hidden"
+                    />
+                </label>
 
-            <label className={labelClasses}>Arquivo</label>
-            <input
-                key={chaveArquivo}
-                type="file"
-                accept=".pdf,image/*"
-                onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
-                className="block w-full text-sm text-slate mb-5 file:mr-3 file:border file:border-ink/20 file:rounded file:bg-transparent file:px-3 file:py-2 file:text-ink hover:file:border-gold"
-            />
+                <div className="flex justify-end">
+                    <Button onClick={handleEnviar} carregando={enviando} disabled={!arquivo || descricao.trim() === ''} icone="upload">
+                        {enviando ? 'Enviando...' : 'Enviar documento'}
+                    </Button>
+                </div>
+            </div>
 
-            <button
-                onClick={handleEnviar}
-                disabled={enviando || !arquivo || descricao.trim() === ''}
-                className="bg-ink text-paper rounded px-5 py-2.5 text-sm font-medium hover:bg-ink/90 disabled:opacity-50"
-            >
-                {enviando ? 'Enviando...' : 'Enviar documento'}
-            </button>
+            <p className="font-semibold text-ink mt-6 mb-2">Histórico</p>
 
-            <div className="mt-8 pt-6 border-t border-ink/10">
-                <p className="font-serif text-lg text-ink mb-4">Histórico</p>
+            {carregando && <Carregando />}
+            {erro && <EstadoErro mensagem={erro} />}
 
-                {carregando && <p className="text-sm text-slate">Carregando...</p>}
-                {erro && <p className="text-sm text-red-600">Erro: {erro}</p>}
-
-                {!carregando && !erro && (
-                    documentos.length === 0 ? (
-                        <p className="text-sm text-slate">Nenhum documento enviado ainda.</p>
-                    ) : (
-                        <ul className="border-t border-ink/10">
-                            {documentos.map((d) => (
-                                <li key={d.id} className="flex items-start justify-between gap-4 py-3 border-b border-ink/10">
+            {!carregando && !erro && (
+                documentos.length === 0 ? (
+                    <EstadoVazio icone="documentos" titulo="Nenhum documento enviado ainda" />
+                ) : (
+                    <ul className="divide-y divide-line">
+                        {documentos.map((d) => (
+                            <li key={d.id} className="flex items-center justify-between gap-4 py-3">
+                                <div className="flex items-start gap-3 min-w-0">
+                                    <span className="w-9 h-9 rounded-lg bg-surface-muted text-slate flex items-center justify-center shrink-0">
+                                        <Icone nome="documentos" />
+                                    </span>
                                     <div className="min-w-0">
-                                        <p className="text-ink">{d.descricao}</p>
-                                        <p className="text-xs text-slate mt-0.5">
-                                            <span className="text-gold">{TIPO_DOCUMENTO_LABEL[d.tipo]}</span>
-                                            {' · '}{new Date(d.data).toLocaleDateString('pt-BR')}
-                                            {' · '}por {d.registradoPor}
+                                        <p className="text-sm font-medium text-ink truncate">{d.descricao}</p>
+                                        <p className="text-xs text-slate mt-0.5 flex flex-wrap items-center gap-x-2">
+                                            <Badge tom="destaque">{TIPO_DOCUMENTO_LABEL[d.tipo]}</Badge>
+                                            <span>{new Date(d.data).toLocaleDateString('pt-BR')} · por {d.registradoPor}</span>
                                         </p>
                                     </div>
+                                </div>
 
-                                    <button
-                                        onClick={() => handleAbrir(d.id)}
-                                        disabled={abrindoId === d.id}
-                                        className="text-sm text-ink hover:text-gold shrink-0 disabled:opacity-50"
-                                    >
-                                        {abrindoId === d.id ? 'Abrindo...' : 'Abrir'}
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    )
-                )}
-            </div>
+                                <Button
+                                    tamanho="sm"
+                                    variante="secundario"
+                                    icone="abrir"
+                                    onClick={() => handleAbrir(d.id)}
+                                    carregando={abrindoId === d.id}
+                                >
+                                    Abrir
+                                </Button>
+                            </li>
+                        ))}
+                    </ul>
+                )
+            )}
         </Modal>
     );
 }

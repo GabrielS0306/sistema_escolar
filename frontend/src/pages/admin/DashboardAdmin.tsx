@@ -2,76 +2,79 @@ import { Link } from 'react-router-dom';
 import { useAlunos } from '../../hooks/useAlunos';
 import { useTurmas } from '../../hooks/useTurmas';
 import { useProfessores } from '../../hooks/useProfessores';
+import { useRecuperacao } from '../../hooks/useRecuperacao';
+import { useConselhos } from '../../hooks/useConselhos';
 import { useAuth } from '../../hooks/useAuth';
+import { Pagina, PageHeader, StatCard } from '../../components/ui/Estrutura';
+import { Card } from '../../components/ui/Card';
+import { Icone, type NomeIcone } from '../../components/ui/Icone';
+import { ComunicadosRecentes } from '../../components/ComunicadosRecentes';
+import { hojePorExtenso, saudacao } from '../../utils/datas';
 
-const ACESSOS = [
-    { path: '/admin/alunos', label: 'Alunos', descricao: 'Cadastro e matrículas' },
-    { path: '/admin/turmas', label: 'Turmas', descricao: 'Séries, turnos e ano letivo' },
-    { path: '/admin/professores', label: 'Professores', descricao: 'Corpo docente' },
-    { path: '/admin/frequencia', label: 'Frequência', descricao: 'Consulta de presença' },
-    { path: '/admin/notas', label: 'Notas', descricao: 'Avaliações e médias' },
+const ACESSOS: { path: string; label: string; descricao: string; icone: NomeIcone }[] = [
+    { path: '/admin/usuarios/novo', label: 'Novo usuário', descricao: 'Cadastrar aluno, professor ou equipe', icone: 'novoUsuario' },
+    { path: '/admin/usuarios', label: 'Usuários', descricao: 'Editar dados, senha e documentos', icone: 'usuarios' },
+    { path: '/admin/turmas', label: 'Turmas', descricao: 'Séries, turnos e ano letivo', icone: 'turmas' },
+    { path: '/admin/notas', label: 'Notas', descricao: 'Avaliações e médias', icone: 'notas' },
+    { path: '/admin/frequencia', label: 'Frequência', descricao: 'Consulta de presença', icone: 'frequencia' },
+    { path: '/admin/comunicados', label: 'Comunicados', descricao: 'Enviar avisos à escola', icone: 'comunicados' },
 ];
-
-function saudacao() {
-    const hora = new Date().getHours();
-
-    if (hora < 12) return 'Bom dia';
-    if (hora < 18) return 'Boa tarde';
-
-    return 'Boa noite';
-}
 
 export function DashboardAdmin() {
     const { sessao } = useAuth();
     const { alunos } = useAlunos();
     const { turmas } = useTurmas();
     const { professores } = useProfessores();
+    const { situacoes } = useRecuperacao();
+    const { conselhos } = useConselhos();
 
-    const hoje = new Date().toLocaleDateString('pt-BR', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-    });
+    const alunosEmRecuperacao = new Set(situacoes.map((s) => s.alunoId)).size;
+    const conselhosEmVotacao = conselhos.filter((c) => c.resultado === 0).length;
 
     return (
-        <div className="max-w-4xl mx-auto px-8 py-12">
-            <p className="text-sm text-slate capitalize">{hoje}</p>
+        <Pagina>
+            <PageHeader
+                eyebrow={hojePorExtenso()}
+                titulo={`${saudacao()}, ${sessao?.nome?.split(' ')[0] ?? ''}.`}
+                descricao="Visão geral da escola."
+            />
 
-            <h1 className="font-serif text-3xl text-ink mt-1">
-                {saudacao()}, {sessao?.nome?.split(' ')[0]}.
-            </h1>
-
-            <div className="grid grid-cols-3 mt-10 border-y border-ink/10">
-                <div className="py-6 px-6 border-r border-ink/10">
-                    <p className="font-serif text-4xl text-ink">{alunos.length}</p>
-                    <p className="text-sm text-slate mt-1">Alunos matriculados</p>
-                </div>
-                
-                <div className="py-6 px-6 border-r border-ink/10">
-                    <p className="font-serif text-4xl text-ink">{turmas.length}</p>
-                    <p className="text-sm text-slate mt-1">Turmas ativas</p>
-                </div>
-
-                <div className="py-6 px-6">
-                    <p className="font-serif text-4xl text-ink">{professores.length}</p>
-                    <p className="text-sm text-slate mt-1">Professores</p>
-                </div>
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+                <StatCard valor={alunos.length} rotulo="Alunos" icone="alunos" />
+                <StatCard valor={professores.length} rotulo="Professores" icone="professores" />
+                <StatCard valor={turmas.length} rotulo="Turmas" icone="turmas" />
+                <StatCard
+                    valor={alunosEmRecuperacao + conselhosEmVotacao}
+                    rotulo="Pendências"
+                    icone="alerta"
+                    tom={alunosEmRecuperacao + conselhosEmVotacao > 0 ? 'alerta' : 'neutro'}
+                    detalhe={`${alunosEmRecuperacao} em recuperação · ${conselhosEmVotacao} conselhos`}
+                />
             </div>
 
-            <div className="mt-12">
-                <p className="text-sm text-slate mb-4">Áreas de gestão</p>
+            <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr] mt-6">
+                <Card titulo="Acesso rápido">
+                    <div className="grid gap-2 sm:grid-cols-2">
+                        {ACESSOS.map((a) => (
+                            <Link
+                                key={a.path}
+                                to={a.path}
+                                className="group flex items-start gap-3 rounded-lg border border-line p-3 transition-colors hover:border-gold hover:bg-gold-soft/40"
+                            >
+                                <span className="w-9 h-9 rounded-lg bg-surface-muted text-slate group-hover:text-gold flex items-center justify-center transition-colors">
+                                    <Icone nome={a.icone} />
+                                </span>
+                                <span className="min-w-0">
+                                    <span className="block text-sm font-medium text-ink">{a.label}</span>
+                                    <span className="block text-xs text-slate">{a.descricao}</span>
+                                </span>
+                            </Link>
+                        ))}
+                    </div>
+                </Card>
 
-                <div className="divide-y divide-ink/10 border-t border-ink/10">
-                    {ACESSOS.map((item) => (
-                        <Link key={item.path} to={item.path} className="flex items-baseline justify-between py-4 group">
-                            <div>
-                                <p className="text-ink group-hover:text-gold transition-colors">{item.label}</p>
-                                <p className="text-sm text-slate">{item.descricao}</p>
-                            </div>
-                        </Link>
-                    ))}
-                </div>
+                <ComunicadosRecentes className="" />
             </div>
-        </div>
+        </Pagina>
     );
 }

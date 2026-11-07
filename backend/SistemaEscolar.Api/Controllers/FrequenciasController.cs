@@ -13,10 +13,12 @@ namespace SistemaEscolar.Api.Controllers;
 public class FrequenciasController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly SistemaEscolar.Api.Services.AcessoAlunoService _acessoAluno;
 
-    public FrequenciasController(AppDbContext context)
+    public FrequenciasController(AppDbContext context, SistemaEscolar.Api.Services.AcessoAlunoService acessoAluno)
     {
         _context = context;
+        _acessoAluno = acessoAluno;
     }
 
     [HttpPost("registrar")]
@@ -66,6 +68,8 @@ public class FrequenciasController : ControllerBase
     [HttpGet("aluno/{alunoId}")]
     public async Task<ActionResult<IEnumerable<FrequenciaResponseDto>>> GetPorAluno(Guid alunoId)
     {
+        if (!await _acessoAluno.PodeVerAluno(User, alunoId)) return Forbid();
+
         var frequencias = await _context.Frequencias
             .Include(f => f.Aluno).ThenInclude(a => a.Usuario)
             .Where(f => f.AlunoId == alunoId)
