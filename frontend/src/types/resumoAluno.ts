@@ -17,6 +17,7 @@ export interface NotaResumo {
     valor: number;
     bimestre: number;
     nomeAvaliacao: string;
+    disciplina: string;
 }
 
 export interface OcorrenciaResumo {

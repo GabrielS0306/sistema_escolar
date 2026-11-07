@@ -1,59 +1,90 @@
 import { useState } from 'react';
 import { useAlunos } from '../../hooks/useAlunos';
 import { useFrequencia } from '../../hooks/useFrequencia';
+import { Pagina, PageHeader, Carregando, EstadoErro, EstadoVazio, StatCard } from '../../components/ui/Estrutura';
+import { Card } from '../../components/ui/Card';
+import { CampoSelecaoBusca } from '../../components/ui/CampoSelecaoBusca';
+import { Badge } from '../../components/ui/Badge';
+import { Tabela, TabelaCabecalho, TabelaCorpo, Th, Tr, Td } from '../../components/ui/Tabela';
+import { dataCurta } from '../../utils/datas';
+
+// Abaixo disso o aluno corre risco de reprovação por falta (referência da LDB: 75%).
+const FREQUENCIA_MINIMA = 75;
 
 export function ConsultaFrequencia() {
     const { alunos, carregando: carregandoAlunos } = useAlunos();
     const [alunoSelecionado, setAlunoSelecionado] = useState<string | null>(null);
     const { frequencias, carregando, erro } = useFrequencia(alunoSelecionado);
 
-    const selectClasses = 'border border-ink/20 rounded h-11 px-3 mb-8 focus:outline-none focus:border-gold';
+    const presencas = frequencias.filter((f) => f.presente).length;
+    const faltas = frequencias.length - presencas;
+    const percentual = frequencias.length > 0 ? Math.round((presencas / frequencias.length) * 100) : null;
+    const recentes = [...frequencias].sort((a, b) => b.data.localeCompare(a.data));
 
     return (
-        <div className="px-12 py-10">
-            <p className="text-sm text-slate">Gestão acadêmica</p>
-            <h1 className="font-serif text-3xl text-ink mt-1">Frequência</h1>
+        <Pagina>
+            <PageHeader eyebrow="Acadêmico" titulo="Frequência" descricao="Consulte a presença registrada para um aluno." />
 
-            <select
-                className={`${selectClasses} mt-8`}
-                disabled={carregandoAlunos}
-                onChange={(e) => setAlunoSelecionado(e.target.value || null)}
-                defaultValue=""
-            >
-                <option value="">Selecione um aluno</option>
+            <Card className="mb-6">
+                <div className="sm:max-w-md -mb-4">
+                    <CampoSelecaoBusca
+                        label="Aluno"
+                        opcoes={alunos.map((a) => ({ id: a.id, titulo: a.nomeUsuario, subtitulo: `Matrícula ${a.matricula}` }))}
+                        valor={alunoSelecionado ?? ''}
+                        onChange={(id) => setAlunoSelecionado(id || null)}
+                        placeholder={carregandoAlunos ? 'Carregando alunos...' : 'Digite o nome ou a matrícula...'}
+                        desabilitado={carregandoAlunos}
+                    />
+                </div>
+            </Card>
 
-                {alunos.map((aluno) => (
-                    <option key={aluno.id} value={aluno.id}>{aluno.nomeUsuario}</option>
-                ))}
-            </select>
-
-            {carregando && <p className="text-slate">Carregando...</p>}
-            {erro && <p className="text-red-600">Erro: {erro}</p>}
-
-            {alunoSelecionado && !carregando && (
-                <table className="w-full border-t border-ink/10">
-                    <thead>
-                        <tr className="border-b border-ink/10 text-left">
-                        <th className="py-3 text-sm font-normal text-slate">Data</th>
-                        <th className="py-3 text-sm font-normal text-slate">Presença</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {frequencias.map((f) => (
-                            <tr key={f.id} className="border-b border-ink/10 hover:bg-ink/5 transition-colors">
-                                <td className="py-3 text-ink">{new Date(f.data).toLocaleDateString('pt-BR')}</td>
-                                <td className="py-3">
-                                    {f.presente ? (
-                                        <span className="text-sm text-emerald-700">Presente</span>
-                                    ) : (
-                                        <span className="text-sm text-red-700">Falta</span>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            {!alunoSelecionado && (
+                <Card><EstadoVazio icone="frequencia" titulo="Escolha um aluno" descricao="O histórico de presenças e faltas aparece aqui." /></Card>
             )}
-        </div>
+
+            {alunoSelecionado && carregando && <Carregando />}
+            {alunoSelecionado && erro && <EstadoErro mensagem={erro} />}
+
+            {alunoSelecionado && !carregando && !erro && (
+                <>
+                    <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 mb-6">
+                        <StatCard
+                            valor={percentual !== null ? `${percentual}%` : '—'}
+                            rotulo="Frequência"
+                            icone="frequencia"
+                            tom={percentual === null ? 'neutro' : percentual >= FREQUENCIA_MINIMA ? 'sucesso' : 'perigo'}
+                            detalhe={percentual !== null && percentual < FREQUENCIA_MINIMA ? `Abaixo do mínimo de ${FREQUENCIA_MINIMA}%` : undefined}
+                        />
+                        <StatCard valor={presencas} rotulo="Presenças" icone="check" />
+                        <StatCard valor={faltas} rotulo="Faltas" icone="fechar" tom={faltas > 0 ? 'alerta' : 'neutro'} />
+                    </div>
+
+                    <Card semPadding>
+                        {frequencias.length === 0 ? (
+                            <EstadoVazio icone="frequencia" titulo="Nenhuma chamada registrada ainda" />
+                        ) : (
+                            <Tabela>
+                                <TabelaCabecalho>
+                                    <Th>Data</Th>
+                                    <Th>Presença</Th>
+                                </TabelaCabecalho>
+                                <TabelaCorpo>
+                                    {recentes.map((f) => (
+                                        <Tr key={f.id}>
+                                            <Td className="tabular-nums">{dataCurta(f.data)}</Td>
+                                            <Td>
+                                                {f.presente
+                                                    ? <Badge tom="sucesso" comPonto>Presente</Badge>
+                                                    : <Badge tom="perigo" comPonto>Falta</Badge>}
+                                            </Td>
+                                        </Tr>
+                                    ))}
+                                </TabelaCorpo>
+                            </Tabela>
+                        )}
+                    </Card>
+                </>
+            )}
+        </Pagina>
     );
 }

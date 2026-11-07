@@ -3,19 +3,24 @@ import { useAuth } from '../../hooks/useAuth';
 import { useRecuperacao } from '../../hooks/useRecuperacao';
 import { useConselhos } from '../../hooks/useConselhos';
 import { useTurmas } from '../../hooks/useTurmas';
+import { Pagina, PageHeader, StatCard } from '../../components/ui/Estrutura';
+import { Card } from '../../components/ui/Card';
+import { Badge } from '../../components/ui/Badge';
+import { Icone, type NomeIcone } from '../../components/ui/Icone';
 import { ComunicadosRecentes } from '../../components/ComunicadosRecentes';
-
-function saudacao() {
-    const hora = new Date().getHours();
-
-    if (hora < 12) return 'Bom dia';
-    if (hora < 18) return 'Boa tarde';
-
-    return 'Boa noite';
-}
+import { hojePorExtenso, saudacao } from '../../utils/datas';
 
 function plural(n: number, singular: string, pluralTexto: string) {
     return `${n} ${n === 1 ? singular : pluralTexto}`;
+}
+
+interface Pendencia {
+    path: string;
+    icone: NomeIcone;
+    titulo: string;
+    descricao: string;
+    quantidade: number;
+    carregando: boolean;
 }
 
 export function DashboardCoordenador() {
@@ -29,85 +34,84 @@ export function DashboardCoordenador() {
     const conselhosPendentes = conselhos.filter((c) => c.resultado === 0);
     const prontosParaEncerrar = conselhosPendentes.filter((c) => c.votosAprovar + c.votosReprovar > 0).length;
 
-    const pendencias = [
+    const pendencias: Pendencia[] = [
         {
             path: '/coordenador/recuperacao',
-            titulo: situacoes.length === 0
-                ? 'Nenhuma prova final pendente'
-                : `${plural(situacoes.length, 'prova final', 'provas finais')} para lançar`,
+            icone: 'recuperacao',
+            titulo: 'Provas finais',
             descricao: situacoes.length === 0
                 ? 'Nenhum aluno em recuperação no momento.'
-                : `${plural(alunosEmRecuperacao, 'aluno', 'alunos')} em recuperação.`,
-            ativa: situacoes.length > 0,
+                : `${plural(situacoes.length, 'prova final', 'provas finais')} para lançar (${plural(alunosEmRecuperacao, 'aluno', 'alunos')}).`,
+            quantidade: situacoes.length,
             carregando: carregandoRecuperacao,
         },
         {
             path: '/coordenador/conselhos',
-            titulo: conselhosPendentes.length === 0
-                ? 'Nenhum conselho em aberto'
-                : `${plural(conselhosPendentes.length, 'conselho', 'conselhos')} em votação`,
+            icone: 'conselho',
+            titulo: 'Conselhos de classe',
             descricao: conselhosPendentes.length === 0
-                ? 'Todos os conselhos de classe foram encerrados.'
-                : `${plural(prontosParaEncerrar, 'já tem', 'já têm')} votos e pode${prontosParaEncerrar === 1 ? '' : 'm'} ser encerrado${prontosParaEncerrar === 1 ? '' : 's'}.`,
-            ativa: conselhosPendentes.length > 0,
+                ? 'Todos os conselhos foram encerrados.'
+                : `${plural(conselhosPendentes.length, 'conselho', 'conselhos')} em votação; ${plural(prontosParaEncerrar, 'pronto', 'prontos')} para encerrar.`,
+            quantidade: conselhosPendentes.length,
             carregando: carregandoConselhos,
         },
     ];
 
-    const hoje = new Date().toLocaleDateString('pt-BR', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-    });
-
     return (
-        <div className="max-w-4xl mx-auto px-8 py-12">
-            <p className="text-sm text-slate capitalize">{hoje}</p>
+        <Pagina>
+            <PageHeader
+                eyebrow={hojePorExtenso()}
+                titulo={`${saudacao()}, ${sessao?.nome?.split(' ')[0] ?? ''}.`}
+                descricao="Acompanhamento pedagógico da escola."
+            />
 
-            <h1 className="font-serif text-3xl text-ink mt-1">
-                {saudacao()}, {sessao?.nome?.split(' ')[0]}.
-            </h1>
-
-            <div className="grid grid-cols-3 mt-10 border-y border-ink/10">
-                <div className="py-6 px-6 border-r border-ink/10">
-                    <p className="font-serif text-4xl text-amber-700">{alunosEmRecuperacao}</p>
-                    <p className="text-sm text-slate mt-1">Alunos em recuperação</p>
-                </div>
-
-                <div className="py-6 px-6 border-r border-ink/10">
-                    <p className="font-serif text-4xl text-ink">{conselhosPendentes.length}</p>
-                    <p className="text-sm text-slate mt-1">Conselhos em votação</p>
-                </div>
-
-                <div className="py-6 px-6">
-                    <p className="font-serif text-4xl text-ink">{turmas.length}</p>
-                    <p className="text-sm text-slate mt-1">Turmas</p>
-                </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+                <StatCard
+                    valor={alunosEmRecuperacao}
+                    rotulo="Alunos em recuperação"
+                    icone="recuperacao"
+                    tom={alunosEmRecuperacao > 0 ? 'alerta' : 'neutro'}
+                />
+                <StatCard
+                    valor={conselhosPendentes.length}
+                    rotulo="Conselhos em votação"
+                    icone="conselho"
+                    tom={conselhosPendentes.length > 0 ? 'destaque' : 'neutro'}
+                />
+                <StatCard valor={turmas.length} rotulo="Turmas" icone="turmas" />
             </div>
 
-            <div className="mt-12">
-                <p className="text-sm text-slate mb-4">Pendências</p>
+            <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr] mt-6">
+                <Card titulo="Pendências" descricao="O que depende da coordenação agora.">
+                    <div className="grid gap-2">
+                        {pendencias.map((p) => (
+                            <Link
+                                key={p.path}
+                                to={p.path}
+                                className="group flex items-center gap-3 rounded-lg border border-line p-3 transition-colors hover:border-gold hover:bg-gold-soft/40"
+                            >
+                                <span className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                                    p.quantidade > 0 ? 'bg-warning-soft text-warning' : 'bg-success-soft text-success'
+                                }`}>
+                                    <Icone nome={p.quantidade > 0 ? p.icone : 'check'} />
+                                </span>
 
-                <div className="divide-y divide-ink/10 border-y border-ink/10">
-                    {pendencias.map((p) => (
-                        <Link key={p.path} to={p.path} className="flex items-center justify-between py-4 group">
-                            <div className="flex items-start gap-3">
-                                <span className={`mt-2 w-1.5 h-1.5 rounded-full shrink-0 ${p.ativa ? 'bg-gold' : 'bg-ink/20'}`} />
-                                <div>
-                                    <p className="text-ink group-hover:text-gold transition-colors">
-                                        {p.carregando ? 'Carregando...' : p.titulo}
-                                    </p>
-                                    {!p.carregando && <p className="text-sm text-slate">{p.descricao}</p>}
-                                </div>
-                            </div>
+                                <span className="flex-1 min-w-0">
+                                    <span className="flex items-center gap-2">
+                                        <span className="text-sm font-medium text-ink">{p.titulo}</span>
+                                        {!p.carregando && p.quantidade > 0 && <Badge tom="alerta">{p.quantidade}</Badge>}
+                                    </span>
+                                    <span className="block text-xs text-slate">{p.carregando ? 'Carregando...' : p.descricao}</span>
+                                </span>
 
-                            <span className="text-slate group-hover:text-gold transition-colors">→</span>
-                        </Link>
-                    ))}
-                </div>
+                                <Icone nome="chevronDireita" className="text-slate group-hover:text-gold transition-colors" />
+                            </Link>
+                        ))}
+                    </div>
+                </Card>
+
+                <ComunicadosRecentes className="" />
             </div>
-
-            <ComunicadosRecentes />
-        </div>
+        </Pagina>
     );
 }

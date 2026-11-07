@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import { Modal } from './Modal';
+import { Button } from './ui/Button';
+import { Input, Select, Textarea } from './ui/Campo';
+import { EstadoErro } from './ui/Estrutura';
+import { mensagemDeErro } from '../services/api';
 import { criarComunicado } from '../services/comunicadoService';
 import { PUBLICO_ALVO_LABEL } from '../types/comunicado';
 
@@ -59,66 +63,51 @@ export function NovoComunicadoModal({ aberto, onFechar, onEnviado, turmas, somen
 
             limpar();
             onEnviado();
-        } catch {
-            setErro('Não foi possível enviar o comunicado.');
+        } catch (err) {
+            setErro(mensagemDeErro(err, 'Não foi possível enviar o comunicado.'));
         } finally {
             setEnviando(false);
         }
     }
 
-    const inputClasses = 'w-full h-11 border border-ink/20 rounded px-3 mb-4 focus:outline-none focus:border-gold';
-
     return (
-        <Modal aberto={aberto} onFechar={handleFechar} titulo="Novo comunicado">
-            {erro && (
-                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2 mb-4">{erro}</p>
-            )}
+        <Modal
+            aberto={aberto}
+            onFechar={handleFechar}
+            titulo="Novo comunicado"
+            descricao={somenteTurma ? 'O comunicado vai para os alunos e responsáveis da turma escolhida.' : undefined}
+        >
+            {erro && <div className="mb-4"><EstadoErro mensagem={erro} /></div>}
 
-            <label className="block text-sm text-slate mb-1">Título</label>
-            <input value={titulo} onChange={(e) => setTitulo(e.target.value)} className={inputClasses} />
+            <Input label="Título" value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Reunião de pais" autoFocus />
 
-            {!somenteTurma && (
-                <>
-                    <label className="block text-sm text-slate mb-1">Público</label>
-                    <select
-                        value={publicoAlvo}
-                        onChange={(e) => setPublicoAlvo(Number(e.target.value))}
-                        className={inputClasses}
-                    >
+            <div className="grid sm:grid-cols-2 gap-x-4">
+                {!somenteTurma && (
+                    <Select label="Público" value={publicoAlvo} onChange={(e) => setPublicoAlvo(Number(e.target.value))}>
                         {PUBLICO_ALVO_LABEL.map((label, valor) => (
                             <option key={valor} value={valor}>{label}</option>
                         ))}
-                    </select>
-                </>
-            )}
+                    </Select>
+                )}
 
-            {precisaTurma && (
-                <>
-                    <label className="block text-sm text-slate mb-1">Turma</label>
-                    <select value={turmaId} onChange={(e) => setTurmaId(e.target.value)} className={inputClasses}>
+                {precisaTurma && (
+                    <Select label="Turma" value={turmaId} onChange={(e) => setTurmaId(e.target.value)}>
                         <option value="">Selecione uma turma</option>
                         {turmas.map((t) => (
                             <option key={t.id} value={t.id}>{t.label}</option>
                         ))}
-                    </select>
-                </>
-            )}
+                    </Select>
+                )}
+            </div>
 
-            <label className="block text-sm text-slate mb-1">Mensagem</label>
-            <textarea
-                value={mensagem}
-                onChange={(e) => setMensagem(e.target.value)}
-                rows={5}
-                className="w-full border border-ink/20 rounded px-3 py-2 mb-6 focus:outline-none focus:border-gold"
-            />
+            <Textarea label="Mensagem" value={mensagem} onChange={(e) => setMensagem(e.target.value)} rows={5} />
 
-            <button
-                onClick={handleEnviar}
-                disabled={enviando || !podeEnviar}
-                className="bg-ink text-paper rounded px-5 py-2.5 text-sm font-medium hover:bg-ink/90 disabled:opacity-50"
-            >
-                {enviando ? 'Enviando...' : 'Enviar comunicado'}
-            </button>
+            <div className="flex justify-end gap-3">
+                <Button variante="secundario" onClick={handleFechar}>Cancelar</Button>
+                <Button onClick={handleEnviar} carregando={enviando} disabled={!podeEnviar} icone="comunicados">
+                    {enviando ? 'Enviando...' : 'Enviar comunicado'}
+                </Button>
+            </div>
         </Modal>
     );
 }

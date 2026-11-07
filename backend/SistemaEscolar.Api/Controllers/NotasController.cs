@@ -13,10 +13,12 @@ namespace SistemaEscolar.Api.Controllers;
 public class NotasController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly SistemaEscolar.Api.Services.AcessoAlunoService _acessoAluno;
 
-    public NotasController(AppDbContext context)
+    public NotasController(AppDbContext context, SistemaEscolar.Api.Services.AcessoAlunoService acessoAluno)
     {
         _context = context;
+        _acessoAluno = acessoAluno;
     }
 
     [HttpPost("lancar")]
@@ -69,6 +71,8 @@ public class NotasController : ControllerBase
     [HttpGet("aluno/{alunoId}")]
     public async Task<ActionResult<IEnumerable<NotaComAvaliacaoResponseDto>>> GetPorAluno(Guid alunoId)
     {
+        if (!await _acessoAluno.PodeVerAluno(User, alunoId)) return Forbid();
+
         var notas = await _context.Notas
             .Include(n => n.Avaliacao)
             .Where(n => n.AlunoId == alunoId)
@@ -77,7 +81,8 @@ public class NotasController : ControllerBase
                 Id = n.Id,
                 Valor = n.Valor,
                 Bimestre = n.Avaliacao.Bimestre,
-                NomeAvaliacao = n.Avaliacao.Nome
+                NomeAvaliacao = n.Avaliacao.Nome,
+                Disciplina = n.Avaliacao.ProfessorTurmaDisciplina.Disciplina.Nome
             })
             .ToListAsync();
 

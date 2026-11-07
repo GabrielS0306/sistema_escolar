@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react';
-import { RESULTADO_COR, RESULTADO_LABEL, type ConselhoClasse } from '../types/conselho';
+import { RESULTADO_LABEL, RESULTADO_TOM, type ConselhoClasse } from '../types/conselho';
+import { Badge } from './ui/Badge';
+import { EstadoVazio } from './ui/Estrutura';
+import { Tabela, TabelaCabecalho, TabelaCorpo, Th, Tr, Td, CelulaDupla } from './ui/Tabela';
 
 interface TabelaConselhosProps {
     conselhos: ConselhoClasse[];
@@ -10,44 +13,62 @@ interface TabelaConselhosProps {
 
 // Tabela de conselhos compartilhada pela tela do professor (votar) e da gestão (encerrar).
 export function TabelaConselhos({ conselhos, mensagemVazia, renderAcao }: TabelaConselhosProps) {
-    if (conselhos.length === 0) return <p className="text-sm text-slate">{mensagemVazia}</p>;
+    if (conselhos.length === 0) return <EstadoVazio icone="conselho" titulo={mensagemVazia} />;
 
     return (
-        <table className="w-full border-t border-ink/10">
-            <thead>
-                <tr className="border-b border-ink/10 text-left">
-                    <th className="py-3 text-sm font-normal text-slate">Aluno</th>
-                    <th className="py-3 text-sm font-normal text-slate">Ano</th>
-                    <th className="py-3 text-sm font-normal text-slate">Disciplinas reprovadas</th>
-                    <th className="py-3 text-sm font-normal text-slate">Votos</th>
-                    <th className="py-3 text-sm font-normal text-slate text-right">
-                        {renderAcao ? '' : 'Resultado'}
-                    </th>
-                </tr>
-            </thead>
+        <Tabela>
+            <TabelaCabecalho>
+                <Th>Aluno</Th>
+                <Th>Ano</Th>
+                <Th>Disciplinas reprovadas</Th>
+                <Th>Votos</Th>
+                <Th className="text-right">{renderAcao ? '' : 'Resultado'}</Th>
+            </TabelaCabecalho>
 
-            <tbody>
+            <TabelaCorpo>
                 {conselhos.map((c) => (
-                    <tr key={c.id} className="border-b border-ink/10 align-top">
-                        <td className="py-3">
-                            <p className="text-ink">{c.nomeAluno}</p>
-                            <p className="text-xs text-slate">Matrícula {c.matricula}</p>
-                        </td>
-                        <td className="py-3 text-slate">{c.anoLetivo}</td>
-                        <td className="py-3 text-slate text-sm">{c.disciplinasReprovadas.join(', ') || '—'}</td>
-                        <td className="py-3 text-sm text-slate whitespace-nowrap">
-                            <span className="text-emerald-700">{c.votosAprovar} aprovar</span>
-                            {' · '}
-                            <span className="text-red-700">{c.votosReprovar} reprovar</span>
-                        </td>
-                        <td className="py-3 text-sm text-right">
+                    <Tr key={c.id}>
+                        <Td><CelulaDupla principal={c.nomeAluno} secundario={`Matrícula ${c.matricula}`} /></Td>
+                        <Td className="text-slate tabular-nums">{c.anoLetivo}</Td>
+                        <Td>
+                            <div className="flex flex-wrap gap-1">
+                                {c.disciplinasReprovadas.length === 0
+                                    ? <span className="text-slate">—</span>
+                                    : c.disciplinasReprovadas.map((d) => <Badge key={d} tom="perigo">{d}</Badge>)}
+                            </div>
+                        </Td>
+                        <Td className="whitespace-nowrap">
+                            <PlacarVotos aprovar={c.votosAprovar} reprovar={c.votosReprovar} />
+                        </Td>
+                        <Td className="text-right whitespace-nowrap">
                             {renderAcao
                                 ? renderAcao(c)
-                                : <span className={RESULTADO_COR[c.resultado]}>{RESULTADO_LABEL[c.resultado]}</span>}
-                        </td>
-                    </tr>
+                                : <Badge tom={RESULTADO_TOM[c.resultado]} comPonto>{RESULTADO_LABEL[c.resultado]}</Badge>}
+                        </Td>
+                    </Tr>
                 ))}
-            </tbody>
-        </table>
+            </TabelaCorpo>
+        </Tabela>
+    );
+}
+
+// Barra proporcional aprovar × reprovar, com os números ao lado.
+function PlacarVotos({ aprovar, reprovar }: { aprovar: number; reprovar: number }) {
+    const total = aprovar + reprovar;
+
+    return (
+        <div className="flex items-center gap-2">
+            <div className="w-20 h-1.5 rounded-full bg-surface-muted overflow-hidden flex" aria-hidden="true">
+                {total > 0 && (
+                    <>
+                        <span className="bg-success h-full" style={{ width: `${(aprovar / total) * 100}%` }} />
+                        <span className="bg-danger h-full" style={{ width: `${(reprovar / total) * 100}%` }} />
+                    </>
+                )}
+            </div>
+            <span className="text-xs text-slate tabular-nums">
+                <span className="text-success font-medium">{aprovar}</span> × <span className="text-danger font-medium">{reprovar}</span>
+            </span>
+        </div>
     );
 }

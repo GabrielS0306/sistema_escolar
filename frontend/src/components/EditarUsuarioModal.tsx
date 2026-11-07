@@ -1,7 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Modal } from './Modal';
 import { getUsuario, atualizarUsuarioAdmin, redefinirSenhaUsuario } from '../services/usuarioService';
+import { mensagemDeErro } from '../services/api';
+import { useToast } from '../hooks/useToast';
 import type { UsuarioDetalhado } from '../types/usuario';
+import { Avatar } from './ui/Avatar';
+import { Button } from './ui/Button';
+import { Input } from './ui/Campo';
+import { Carregando, EstadoErro } from './ui/Estrutura';
 
 interface EditarUsuarioModalProps {
     usuarioId: string | null;
@@ -9,11 +15,11 @@ interface EditarUsuarioModalProps {
 }
 
 export function EditarUsuarioModal({ usuarioId, onFechar }: EditarUsuarioModalProps) {
+    const toast = useToast();
     const [usuario, setUsuario] = useState<UsuarioDetalhado | null>(null);
     const [carregando, setCarregando] = useState(false);
     const [salvando, setSalvando] = useState(false);
     const [erro, setErro] = useState<string | null>(null);
-    const [sucesso, setSucesso] = useState(false);
 
     const [nome, setNome] = useState('');
     const [email, setEmail] = useState('');
@@ -24,7 +30,6 @@ export function EditarUsuarioModal({ usuarioId, onFechar }: EditarUsuarioModalPr
 
     const [novaSenha, setNovaSenha] = useState('');
     const [redefinindo, setRedefinindo] = useState(false);
-    const [avisoSenha, setAvisoSenha] = useState<{ ok: boolean; texto: string } | null>(null);
 
     const fotoPreview = useMemo(() => (foto ? URL.createObjectURL(foto) : null), [foto]);
 
@@ -36,9 +41,8 @@ export function EditarUsuarioModal({ usuarioId, onFechar }: EditarUsuarioModalPr
         (async () => {
             setCarregando(true);
             setErro(null);
-            setSucesso(false);
             setNovaSenha('');
-            setAvisoSenha(null);
+            setFoto(null);
 
             try {
                 const dados = await getUsuario(usuarioId);
@@ -51,16 +55,15 @@ export function EditarUsuarioModal({ usuarioId, onFechar }: EditarUsuarioModalPr
                     setCpf(dados.cpf ?? '');
                     setEndereco(dados.endereco ?? '');
                 }
-            } catch {
-                if (!cancelado) setErro('Não foi possível carregar o usuário.');
+            } catch (err) {
+                if (!cancelado) setErro(mensagemDeErro(err, 'Não foi possível carregar o usuário.'));
             } finally {
                 if (!cancelado) setCarregando(false);
             }
-        })
-    ();
+        })();
 
-    return () => { cancelado = true; };
-}, [usuarioId]);
+        return () => { cancelado = true; };
+    }, [usuarioId]);
 
     async function handleSalvar(e: React.FormEvent) {
         e.preventDefault();
@@ -72,9 +75,9 @@ export function EditarUsuarioModal({ usuarioId, onFechar }: EditarUsuarioModalPr
             const atualizado = await atualizarUsuarioAdmin(usuarioId, { nome, email, telefone, cpf, endereco, foto });
             setUsuario(atualizado);
             setFoto(null);
-            setSucesso(true);
-        } catch {
-            setErro('Não foi possível salvar as alterações.');
+            toast.sucesso('Alterações salvas.');
+        } catch (err) {
+            setErro(mensagemDeErro(err, 'Não foi possível salvar as alterações.'));
         } finally {
             setSalvando(false);
         }
@@ -83,95 +86,79 @@ export function EditarUsuarioModal({ usuarioId, onFechar }: EditarUsuarioModalPr
     async function handleRedefinirSenha() {
         if (!usuarioId || novaSenha.length < 6) return;
         setRedefinindo(true);
-        setAvisoSenha(null);
 
         try {
             await redefinirSenhaUsuario(usuarioId, novaSenha);
             setNovaSenha('');
-            setAvisoSenha({ ok: true, texto: 'Senha redefinida. Informe a nova senha ao usuário.' });
-        } catch {
-            setAvisoSenha({ ok: false, texto: 'Não foi possível redefinir a senha.' });
+            toast.sucesso('Senha redefinida. Informe a nova senha ao usuário.');
+        } catch (err) {
+            toast.erro(mensagemDeErro(err, 'Não foi possível redefinir a senha.'));
         } finally {
             setRedefinindo(false);
         }
     }
 
-    const inputClasses = 'w-full h-11 border border-ink/20 rounded px-3 mb-4 focus:outline-none focus:border-gold';
-    const labelClasses = 'block text-sm text-slate mb-1';
-
     return (
-        <Modal aberto={!!usuarioId} onFechar={onFechar} titulo="Editar usuário">
-            {carregando && <p className="text-sm text-slate">Carregando...</p>}
-            {erro && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2 mb-4">{erro}</p>}
-            {sucesso && <p className="text-sm text-ink bg-gold/10 border border-gold/30 rounded px-3 py-2 mb-4">Alterações salvas.</p>}
+        <Modal aberto={!!usuarioId} onFechar={onFechar} titulo="Editar usuário" descricao={usuario?.email}>
+            {carregando && <Carregando />}
+            {erro && <div className="mb-4"><EstadoErro mensagem={erro} /></div>}
 
             {usuario && !carregando && (
-                <form onSubmit={handleSalvar}>
-                    <div className="flex items-center gap-4 mb-6">
-                        <img
-                            src={fotoPreview ?? usuario.fotoPerfilUrl ?? undefined}
-                            className="w-16 h-16 rounded-full object-cover bg-ink/10"
-                        />
-                        <label className="text-sm text-gold cursor-pointer hover:underline">
-                            Trocar foto
+                <>
+                    <form onSubmit={handleSalvar}>
+                        <div className="flex items-center gap-4 mb-6">
+                            {fotoPreview || usuario.fotoPerfilUrl ? (
+                                <img src={fotoPreview ?? usuario.fotoPerfilUrl ?? undefined} alt="" className="w-16 h-16 rounded-full object-cover" />
+                            ) : (
+                                <span className="scale-150 origin-left ml-2"><Avatar nome={usuario.nome} tamanho="md" /></span>
+                            )}
+                            <label className="text-sm font-medium text-gold cursor-pointer hover:underline ml-2">
+                                Trocar foto
+                                <input type="file" accept="image/*" className="hidden" onChange={(e) => setFoto(e.target.files?.[0] ?? null)} />
+                            </label>
+                        </div>
 
-                            <input type="file" accept="image/*" className="hidden" onChange={(e) => setFoto(e.target.files?.[0] ?? null)} />
-                        </label>
-                    </div>
+                        <div className="grid sm:grid-cols-2 gap-x-4">
+                            <Input label="Nome" value={nome} onChange={(e) => setNome(e.target.value)} className="sm:col-span-2" />
+                            <Input label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                            <Input label="Telefone" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+                            <Input label="CPF" value={cpf} onChange={(e) => setCpf(e.target.value)} />
+                            <Input label="Endereço" value={endereco} onChange={(e) => setEndereco(e.target.value)} />
+                        </div>
 
-                    <label className={labelClasses}>Nome</label>
-                    <input value={nome} onChange={(e) => setNome(e.target.value)} className={inputClasses} />
+                        <div className="flex justify-end">
+                            <Button type="submit" carregando={salvando}>{salvando ? 'Salvando...' : 'Salvar alterações'}</Button>
+                        </div>
+                    </form>
 
-                    <label className={labelClasses}>Email</label>
-                    <input value={email} onChange={(e) => setEmail(e.target.value)} className={inputClasses} />
-
-                    <label className={labelClasses}>Telefone</label>
-                    <input value={telefone} onChange={(e) => setTelefone(e.target.value)} className={inputClasses} />
-
-                    <label className={labelClasses}>CPF</label>
-                    <input value={cpf} onChange={(e) => setCpf(e.target.value)} className={inputClasses} />
-
-                    <label className={labelClasses}>Endereço</label>
-                    <input value={endereco} onChange={(e) => setEndereco(e.target.value)} className={inputClasses} />
-
-                    <button type="submit" disabled={salvando} className="bg-ink text-paper rounded px-5 py-2.5 text-sm font-medium hover:bg-ink/90 disabled:opacity-50 mt-2">
-                        {salvando ? 'Salvando...' : 'Salvar alterações'}
-                    </button>
-                </form>
-            )}
-
-            {usuario && !carregando && (
-                <div className="mt-8 pt-6 border-t border-ink/10">
-                    <p className="font-serif text-lg text-ink">Redefinir senha</p>
-                    <p className="text-sm text-slate mt-1 mb-4">
-                        Para quando o usuário esquecer a senha. A senha atual deixa de valer na hora.
-                    </p>
-
-                    {avisoSenha && (
-                        <p className={`text-sm rounded px-3 py-2 mb-4 border ${avisoSenha.ok ? 'text-ink bg-gold/10 border-gold/30' : 'text-red-700 bg-red-50 border-red-200'}`}>
-                            {avisoSenha.texto}
+                    <div className="mt-6 pt-5 border-t border-line">
+                        <p className="font-semibold text-ink">Redefinir senha</p>
+                        <p className="text-sm text-slate mt-0.5 mb-4">
+                            Para quando o usuário esquecer a senha. A senha atual deixa de valer na hora.
                         </p>
-                    )}
 
-                    <label className={labelClasses}>Nova senha (mínimo 6 caracteres)</label>
-                    <div className="flex gap-3">
-                        <input
-                            type="password"
-                            value={novaSenha}
-                            onChange={(e) => setNovaSenha(e.target.value)}
-                            autoComplete="new-password"
-                            className="flex-1 h-11 border border-ink/20 rounded px-3 focus:outline-none focus:border-gold"
-                        />
-                        <button
-                            type="button"
-                            onClick={handleRedefinirSenha}
-                            disabled={redefinindo || novaSenha.length < 6}
-                            className="border border-ink text-ink rounded px-5 text-sm font-medium hover:bg-ink/5 disabled:opacity-50"
-                        >
-                            {redefinindo ? 'Redefinindo...' : 'Redefinir'}
-                        </button>
+                        <div className="flex flex-col sm:flex-row gap-3 sm:items-start">
+                            <Input
+                                type="password"
+                                value={novaSenha}
+                                onChange={(e) => setNovaSenha(e.target.value)}
+                                autoComplete="new-password"
+                                placeholder="Nova senha (mínimo 6 caracteres)"
+                                aria-label="Nova senha"
+                                className="flex-1"
+                            />
+                            <Button
+                                variante="secundario"
+                                icone="chave"
+                                onClick={handleRedefinirSenha}
+                                carregando={redefinindo}
+                                disabled={novaSenha.length < 6}
+                            >
+                                Redefinir
+                            </Button>
+                        </div>
                     </div>
-                </div>
+                </>
             )}
         </Modal>
     );

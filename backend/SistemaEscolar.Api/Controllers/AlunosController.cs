@@ -134,7 +134,8 @@ public class AlunosController : ControllerBase
                 Id = n.Id,
                 Valor = n.Valor,
                 Bimestre = n.Avaliacao.Bimestre,
-                NomeAvaliacao = n.Avaliacao.Nome
+                NomeAvaliacao = n.Avaliacao.Nome,
+                Disciplina = n.Avaliacao.ProfessorTurmaDisciplina.Disciplina.Nome
             })
             .ToListAsync();
 

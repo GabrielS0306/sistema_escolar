@@ -2,9 +2,19 @@ import { useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useAlunosPorTurma } from '../../hooks/useAlunosPorTurma';
 import { useNotasTurma } from '../../hooks/useNotasTurma';
+import { useToast } from '../../hooks/useToast';
 import { criarAvaliacao } from '../../services/avaliacaoService';
 import { lancarNotas } from '../../services/notaProfessorService';
+import { mensagemDeErro } from '../../services/api';
 import { Modal } from '../../components/Modal';
+import { BarraFerramentas, Carregando, EstadoErro, EstadoVazio, Aviso } from '../../components/ui/Estrutura';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { CampoBusca, Input, Select } from '../../components/ui/Campo';
+import { Avatar } from '../../components/ui/Avatar';
+import { Tabela, TabelaCabecalho, TabelaCorpo, Th, Tr, Td } from '../../components/ui/Tabela';
+import { lerNota, NOTA_MINIMA } from '../../utils/notas';
 
 const TIPOS_AVALIACAO = [
     { value: 0, label: 'Comportamento' },
@@ -13,6 +23,7 @@ const TIPOS_AVALIACAO = [
 ];
 
 export function AbaNotas() {
+    const toast = useToast();
     const { turmaId } = useParams<{ turmaId: string }>();
     const [searchParams] = useSearchParams();
     const vinculoId = searchParams.get('vinculo');
@@ -21,6 +32,7 @@ export function AbaNotas() {
     const { notas, carregando, erro, recarregarDados } = useNotasTurma(vinculoId);
 
     const [busca, setBusca] = useState('');
+    const [bimestreFiltro, setBimestreFiltro] = useState(0);  // 0 = todos
     const [modalAberto, setModalAberto] = useState(false);
 
     const [bimestre, setBimestre] = useState(1);
@@ -31,188 +43,167 @@ export function AbaNotas() {
     const [salvando, setSalvando] = useState(false);
     const [erroModal, setErroModal] = useState<string | null>(null);
 
-    const notasFiltradas = notas.filter((n) =>
-        n.nomeAluno.toLowerCase().includes(busca.toLowerCase())
-    );
+    const notasFiltradas = notas
+        .filter((n) => n.nomeAluno.toLowerCase().includes(busca.toLowerCase()))
+        .filter((n) => bimestreFiltro === 0 || n.bimestre === bimestreFiltro)
+        .sort((a, b) => a.bimestre - b.bimestre || a.nomeAluno.localeCompare(b.nomeAluno));
 
-    function alterarNota(alunoId: string, valor: string) {
-        setNotasForm((prev) => ({ ...prev, [alunoId]: valor }));
+    // Notas digitadas no modal: vazias são ignoradas; preenchidas precisam ser válidas.
+    const preenchidas = alunos.filter((a) => (notasForm[a.alunoId] ?? '').trim() !== '');
+    const invalidas = preenchidas.filter((a) => lerNota(notasForm[a.alunoId]) === null);
+    const podeLancar = nomeAvaliacao.trim() !== '' && preenchidas.length > 0 && invalidas.length === 0;
+
+    function abrirModal() {
+        setNotasForm({});
+        setNomeAvaliacao('');
+        setErroModal(null);
+        setModalAberto(true);
     }
 
     async function handleLancarNotas() {
-        if (!vinculoId || !nomeAvaliacao) return;
+        if (!vinculoId || !podeLancar) return;
 
         setSalvando(true);
         setErroModal(null);
 
         try {
+            // Valida antes de criar a avaliação: antes, um lançamento sem notas deixava uma avaliação vazia no banco.
+            const notasParaEnviar = preenchidas.map((a) => ({ alunoId: a.alunoId, valor: lerNota(notasForm[a.alunoId])! }));
+
             const avaliacao = await criarAvaliacao({
                 professorTurmaDisciplinaId: vinculoId,
                 bimestre,
                 tipo: tipoAvaliacao,
-                nome: nomeAvaliacao,
+                nome: nomeAvaliacao.trim(),
                 data: new Date(dataAvaliacao).toISOString(),
             });
 
-            const notasPreenchidas = alunos
-                .filter((a) => notasForm[a.alunoId] !== undefined && notasForm[a.alunoId] !== '')
-                .map((a) => ({ alunoId: a.alunoId, valor: Number(notasForm[a.alunoId]) }));
+            await lancarNotas({ avaliacaoId: avaliacao.id, notas: notasParaEnviar });
 
-            if (notasPreenchidas.length === 0) {
-                setErroModal('Preencha a nota de pelo menos um aluno.');
-                return;
-            }
-
-            await lancarNotas({ avaliacaoId: avaliacao.id, notas: notasPreenchidas });
-
+            toast.sucesso(`${notasParaEnviar.length} ${notasParaEnviar.length === 1 ? 'nota lançada' : 'notas lançadas'} em "${nomeAvaliacao.trim()}".`);
             setModalAberto(false);
-            setNotasForm({});
-            setNomeAvaliacao('');
             recarregarDados();
-        } catch {
-            setErroModal('Não foi possível lançar as notas.');
+        } catch (err) {
+            setErroModal(mensagemDeErro(err, 'Não foi possível lançar as notas.'));
         } finally {
             setSalvando(false);
         }
     }
 
     return (
-        <div>
-            <div className="flex items-center justify-between mb-8">
-                <input
-                    value={busca}
-                    onChange={(e) => setBusca(e.target.value)}
-                    placeholder="Buscar por aluno..."
-                    className="w-72 h-11 border border-ink/20 rounded px-3 focus:outline-none focus:border-gold"
-                />
-                    <button
-                        onClick={() => setModalAberto(true)}
-                        className="bg-ink text-paper rounded px-5 py-2.5 text-sm font-medium hover:bg-ink/90"
-                    >
-                        Lançar notas
-                    </button>
-            </div>
-
-            {carregando && <p className="text-slate">Carregando...</p>}
-            {erro && <p className="text-red-600">Erro: {erro}</p>}
-
-            {!carregando && !erro && (
-                notasFiltradas.length === 0 ? (
-                    <p className="text-sm text-slate">Nenhuma nota lançada ainda.</p>
-                ) : (
-                    <table className="w-full border-t border-ink/10">
-                        <thead>
-                            <tr className="border-b border-ink/10 text-left">
-                                <th className="py-3 text-sm font-normal text-slate">Aluno</th>
-                                <th className="py-3 text-sm font-normal text-slate">Bimestre</th>
-                                <th className="py-3 text-sm font-normal text-slate">Avaliação</th>
-                                <th className="py-3 text-sm font-normal text-slate">Nota</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            {notasFiltradas.map((n) => (
-                                <tr key={n.id} className="border-b border-ink/10">
-                                    <td className="py-3 text-ink">{n.nomeAluno}</td>
-                                    <td className="py-3 text-slate">{n.bimestre}º</td>
-                                    <td className="py-3 text-slate">{n.nomeAvaliacao}</td>
-                                    <td className="py-3 text-ink font-medium">{n.valor.toFixed(1)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )
-            )}
-
-            <Modal aberto={modalAberto} onFechar={() => setModalAberto(false)} titulo="Lançar notas">
-                {erroModal && (
-                    <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2 mb-4">{erroModal}</p>
-                )}
-
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div>
-                        <label className="block text-sm text-slate mb-1">Bimestre</label>
-
-                        <select
-                            value={bimestre}
-                            onChange={(e) => setBimestre(Number(e.target.value))}
-                            className="w-full h-11 border border-ink/20 rounded px-3 focus:outline-none focus:border-gold"
-                        >
-                            {[1, 2, 3, 4].map((b) => <option key={b} value={b}>{b}º</option>)}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm text-slate mb-1">Tipo</label>
-                        
-                        <select
-                            value={tipoAvaliacao}
-                            onChange={(e) => setTipoAvaliacao(Number(e.target.value))}
-                            className="w-full h-11 border border-ink/20 rounded px-3 focus:outline-none focus:border-gold"
-                        >
-                            {TIPOS_AVALIACAO.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm text-slate mb-1">Nome da avaliação</label>
-
-                        <input
-                            value={nomeAvaliacao}
-                            onChange={(e) => setNomeAvaliacao(e.target.value)}
-                            placeholder="ex: AV1"
-                            className="w-full h-11 border border-ink/20 rounded px-3 focus:outline-none focus:border-gold"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm text-slate mb-1">Data</label>
-
-                        <input
-                            type="date"
-                            value={dataAvaliacao}
-                            onChange={(e) => setDataAvaliacao(e.target.value)}
-                            className="w-full h-11 border border-ink/20 rounded px-3 focus:outline-none focus:border-gold"
-                        />
-                    </div>
+        <>
+            <Card semPadding>
+                <div className="p-4">
+                    <BarraFerramentas>
+                        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                            <CampoBusca value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por aluno..." />
+                            <Select value={bimestreFiltro} onChange={(e) => setBimestreFiltro(Number(e.target.value))} className="sm:w-44" aria-label="Bimestre">
+                                <option value={0}>Todos os bimestres</option>
+                                {[1, 2, 3, 4].map((b) => <option key={b} value={b}>{b}º bimestre</option>)}
+                            </Select>
+                        </div>
+                        <Button icone="mais" onClick={abrirModal} disabled={alunos.length === 0}>Lançar notas</Button>
+                    </BarraFerramentas>
                 </div>
 
-                <table className="w-full border-t border-ink/10 mb-6">
-                    <thead>
-                        <tr className="border-b border-ink/10 text-left">
-                            <th className="py-3 text-sm font-normal text-slate">Nome</th>
-                            <th className="py-3 text-sm font-normal text-slate">Nota</th>
-                        </tr>
-                    </thead>
+                {carregando && <Carregando />}
+                {erro && <div className="px-4 pb-4"><EstadoErro mensagem={erro} /></div>}
 
-                    <tbody>
-                        {alunos.map((a) => (
-                            <tr key={a.alunoId} className="border-b border-ink/10">
-                                <td className="py-3 text-ink">{a.nomeAluno}</td>
-                                <td className="py-3">
-                                    <input
-                                        type="number"
-                                        step="0.1"
-                                        min="0"
-                                        max="10"
-                                        value={notasForm[a.alunoId] ?? ''}
-                                        onChange={(e) => alterarNota(a.alunoId, e.target.value)}
-                                        className="w-20 h-9 border border-ink/20 rounded px-2 focus:outline-none focus:border-gold"
-                                    />
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                {!carregando && !erro && (
+                    notasFiltradas.length === 0 ? (
+                        <EstadoVazio
+                            icone="notas"
+                            titulo={busca || bimestreFiltro ? 'Nenhuma nota encontrada' : 'Nenhuma nota lançada ainda'}
+                            descricao={busca || bimestreFiltro ? undefined : 'Cada bimestre precisa de 3 avaliações: Comportamento, Atividade e Prova Bimestral.'}
+                        />
+                    ) : (
+                        <Tabela>
+                            <TabelaCabecalho>
+                                <Th>Aluno</Th>
+                                <Th>Bimestre</Th>
+                                <Th>Avaliação</Th>
+                                <Th className="text-right">Nota</Th>
+                            </TabelaCabecalho>
+                            <TabelaCorpo>
+                                {notasFiltradas.map((n) => (
+                                    <Tr key={n.id}>
+                                        <Td className="font-medium">{n.nomeAluno}</Td>
+                                        <Td><Badge>{n.bimestre}º</Badge></Td>
+                                        <Td className="text-slate">{n.nomeAvaliacao}</Td>
+                                        <Td className={`text-right font-semibold tabular-nums ${n.valor < NOTA_MINIMA ? 'text-danger' : ''}`}>
+                                            {n.valor.toFixed(1)}
+                                        </Td>
+                                    </Tr>
+                                ))}
+                            </TabelaCorpo>
+                        </Tabela>
+                    )
+                )}
+            </Card>
 
-                <button
-                    onClick={handleLancarNotas}
-                    disabled={salvando}
-                    className="bg-ink text-paper rounded px-5 py-2.5 text-sm font-medium hover:bg-ink/90 disabled:opacity-50"
-                >
-                    {salvando ? 'Lançando...' : 'Confirmar lançamento'}
-                </button>
+            <Modal aberto={modalAberto} onFechar={() => setModalAberto(false)} titulo="Lançar notas" tamanho="lg">
+                {erroModal && <div className="mb-4"><EstadoErro mensagem={erroModal} /></div>}
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4">
+                    <Select label="Bimestre" value={bimestre} onChange={(e) => setBimestre(Number(e.target.value))}>
+                        {[1, 2, 3, 4].map((b) => <option key={b} value={b}>{b}º</option>)}
+                    </Select>
+                    <Select label="Tipo" value={tipoAvaliacao} onChange={(e) => setTipoAvaliacao(Number(e.target.value))}>
+                        {TIPOS_AVALIACAO.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </Select>
+                    <Input label="Nome" value={nomeAvaliacao} onChange={(e) => setNomeAvaliacao(e.target.value)} placeholder="Ex.: AV1" />
+                    <Input label="Data" type="date" value={dataAvaliacao} onChange={(e) => setDataAvaliacao(e.target.value)} />
+                </div>
+
+                <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-ink">Notas</p>
+                    <p className="text-xs text-slate">
+                        {preenchidas.length} de {alunos.length} preenchidas · de 0 a 10, aceita vírgula
+                    </p>
+                </div>
+
+                <ul className="divide-y divide-line border-y border-line mb-4">
+                    {alunos.map((a) => {
+                        const texto = notasForm[a.alunoId] ?? '';
+                        const invalida = texto.trim() !== '' && lerNota(texto) === null;
+
+                        return (
+                            <li key={a.alunoId} className="flex items-center justify-between gap-3 py-2">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <Avatar nome={a.nomeAluno} />
+                                    <span className="text-sm truncate">{a.nomeAluno}</span>
+                                </div>
+                                <input
+                                    value={texto}
+                                    onChange={(e) => setNotasForm((prev) => ({ ...prev, [a.alunoId]: e.target.value }))}
+                                    inputMode="decimal"
+                                    placeholder="—"
+                                    aria-label={`Nota de ${a.nomeAluno}`}
+                                    aria-invalid={invalida || undefined}
+                                    className={`w-20 h-9 rounded-lg border bg-surface text-center text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-gold/25 ${
+                                        invalida ? 'border-danger text-danger' : 'border-line-strong focus:border-gold'
+                                    }`}
+                                />
+                            </li>
+                        );
+                    })}
+                </ul>
+
+                {invalidas.length > 0 && (
+                    <div className="mb-4">
+                        <Aviso tom="perigo">
+                            {invalidas.length === 1 ? 'Há 1 nota inválida' : `Há ${invalidas.length} notas inválidas`}. Use valores de 0 a 10.
+                        </Aviso>
+                    </div>
+                )}
+
+                <div className="flex justify-end gap-3">
+                    <Button variante="secundario" onClick={() => setModalAberto(false)}>Cancelar</Button>
+                    <Button onClick={handleLancarNotas} carregando={salvando} disabled={!podeLancar} icone="check">
+                        {salvando ? 'Lançando...' : 'Confirmar lançamento'}
+                    </Button>
+                </div>
             </Modal>
-        </div>
+        </>
     );
 }

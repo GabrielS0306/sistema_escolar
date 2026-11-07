@@ -1,23 +1,29 @@
 import { useMeuResumo } from '../../hooks/useMeuResumo';
 import { ResumoAlunoPainel } from '../../components/ResumoAlunoPainel';
 import { ComunicadosRecentes } from '../../components/ComunicadosRecentes';
+import { Pagina, PageHeader, Carregando, EstadoErro } from '../../components/ui/Estrutura';
+import { saudacao } from '../../utils/datas';
 
 export function DashboardAluno() {
     const { resumo, carregando, erro } = useMeuResumo();
 
-    if (carregando) return <p className="text-slate px-12 py-10">Carregando...</p>;
-    if (erro) return <p className="text-red-600 px-12 py-10">Erro: {erro}</p>;
-    if (!resumo) return null;
-
     return (
-        <div className="px-12 py-10">
-            <p className="text-sm text-slate">Portal do aluno</p>
-            <h1 className="font-serif text-3xl text-ink mt-1">Olá, {resumo.nomeAluno.split(' ')[0]}.</h1>
-            <p className="text-sm text-slate mt-1">Matrícula {resumo.matricula}</p>
+        <Pagina>
+            {carregando && <Carregando />}
+            {erro && <EstadoErro mensagem={erro} />}
 
-            <ResumoAlunoPainel resumo={resumo} />
+            {resumo && (
+                <>
+                    <PageHeader
+                        eyebrow="Portal do aluno"
+                        titulo={`${saudacao()}, ${resumo.nomeAluno.split(' ')[0]}.`}
+                        descricao={`Matrícula ${resumo.matricula}`}
+                    />
 
-            <ComunicadosRecentes />
-        </div>
+                    <ResumoAlunoPainel resumo={resumo} />
+                    <ComunicadosRecentes />
+                </>
+            )}
+        </Pagina>
     );
 }

@@ -1,55 +1,88 @@
 import { useState } from 'react';
 import { useAlunos } from '../../hooks/useAlunos';
 import { useNotas } from '../../hooks/useNotas';
+import { Pagina, PageHeader, Carregando, EstadoErro, EstadoVazio, StatCard } from '../../components/ui/Estrutura';
+import { Card } from '../../components/ui/Card';
+import { CampoSelecaoBusca } from '../../components/ui/CampoSelecaoBusca';
+import { Badge } from '../../components/ui/Badge';
+import { Tabela, TabelaCabecalho, TabelaCorpo, Th, Tr, Td } from '../../components/ui/Tabela';
+
+const MEDIA_MINIMA = 6;
 
 export function ConsultaNotas() {
     const { alunos, carregando: carregandoAlunos } = useAlunos();
     const [alunoSelecionado, setAlunoSelecionado] = useState<string | null>(null);
     const { notas, carregando, erro } = useNotas(alunoSelecionado);
 
-    const selectClasses = 'border border-ink/20 rounded h-11 px-3 mb-8 focus:outline-none focus:border-gold';
+    const notasOrdenadas = [...notas].sort((a, b) => a.bimestre - b.bimestre || a.disciplina.localeCompare(b.disciplina));
+    const media = notas.length > 0 ? notas.reduce((soma, n) => soma + n.valor, 0) / notas.length : null;
+    const abaixoDaMedia = notas.filter((n) => n.valor < MEDIA_MINIMA).length;
 
     return (
-        <div className="px-12 py-10">
-            <p className="text-sm text-slate">Gestão acadêmica</p>
-            <h1 className="font-serif text-3xl text-ink mt-1">Notas</h1>
+        <Pagina>
+            <PageHeader eyebrow="Acadêmico" titulo="Notas" descricao="Consulte as notas lançadas para um aluno." />
 
-            <select
-                className={`${selectClasses} mt-8`}
-                disabled={carregandoAlunos}
-                onChange={(e) => setAlunoSelecionado(e.target.value || null)}
-                defaultValue=""
-            >
-                <option value="">Selecione um aluno</option>
+            <Card className="mb-6">
+                <div className="sm:max-w-md -mb-4">
+                    <CampoSelecaoBusca
+                        label="Aluno"
+                        opcoes={alunos.map((a) => ({ id: a.id, titulo: a.nomeUsuario, subtitulo: `Matrícula ${a.matricula}` }))}
+                        valor={alunoSelecionado ?? ''}
+                        onChange={(id) => setAlunoSelecionado(id || null)}
+                        placeholder={carregandoAlunos ? 'Carregando alunos...' : 'Digite o nome ou a matrícula...'}
+                        desabilitado={carregandoAlunos}
+                    />
+                </div>
+            </Card>
 
-                {alunos.map((aluno) => (
-                <option key={aluno.id} value={aluno.id}>{aluno.nomeUsuario}</option>
-                ))}
-            </select>
-
-            {carregando && <p className="text-slate">Carregando...</p>}
-            {erro && <p className="text-red-600">Erro: {erro}</p>}
-
-            {alunoSelecionado && !carregando && (
-                <table className="w-full border-t border-ink/10">
-                    <thead>
-                        <tr className="border-b border-ink/10 text-left">
-                            <th className="py-3 text-sm font-normal text-slate">Bimestre</th>
-                            <th className="py-3 text-sm font-normal text-slate">Avaliação</th>
-                            <th className="py-3 text-sm font-normal text-slate">Nota</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {notas.map((n) => (
-                            <tr key={n.id} className="border-b border-ink/10 hover:bg-ink/5 transition-colors">
-                                <td className="py-3 text-slate">{n.bimestre}º</td>
-                                <td className="py-3 text-ink">{n.nomeAvaliacao}</td>
-                                <td className="py-3 text-ink font-medium">{n.valor.toFixed(1)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            {!alunoSelecionado && (
+                <Card><EstadoVazio icone="notas" titulo="Escolha um aluno" descricao="As notas dele aparecem aqui, organizadas por bimestre." /></Card>
             )}
-        </div>
+
+            {alunoSelecionado && carregando && <Carregando />}
+            {alunoSelecionado && erro && <EstadoErro mensagem={erro} />}
+
+            {alunoSelecionado && !carregando && !erro && (
+                <>
+                    <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 mb-6">
+                        <StatCard valor={notas.length} rotulo="Notas lançadas" icone="notas" />
+                        <StatCard
+                            valor={media !== null ? media.toFixed(1) : '—'}
+                            rotulo="Média geral"
+                            icone="livro"
+                            tom={media === null ? 'neutro' : media >= MEDIA_MINIMA ? 'sucesso' : 'alerta'}
+                        />
+                        <StatCard valor={abaixoDaMedia} rotulo={`Abaixo de ${MEDIA_MINIMA}`} icone="alerta" tom={abaixoDaMedia > 0 ? 'perigo' : 'neutro'} />
+                    </div>
+
+                    <Card semPadding>
+                        {notas.length === 0 ? (
+                            <EstadoVazio icone="notas" titulo="Nenhuma nota lançada ainda" />
+                        ) : (
+                            <Tabela>
+                                <TabelaCabecalho>
+                                    <Th>Bimestre</Th>
+                                    <Th>Disciplina</Th>
+                                    <Th>Avaliação</Th>
+                                    <Th className="text-right">Nota</Th>
+                                </TabelaCabecalho>
+                                <TabelaCorpo>
+                                    {notasOrdenadas.map((n) => (
+                                        <Tr key={n.id}>
+                                            <Td><Badge>{n.bimestre}º bimestre</Badge></Td>
+                                            <Td className="font-medium">{n.disciplina}</Td>
+                                            <Td className="text-slate">{n.nomeAvaliacao}</Td>
+                                            <Td className={`text-right font-semibold tabular-nums ${n.valor < MEDIA_MINIMA ? 'text-danger' : 'text-ink'}`}>
+                                                {n.valor.toFixed(1)}
+                                            </Td>
+                                        </Tr>
+                                    ))}
+                                </TabelaCorpo>
+                            </Tabela>
+                        )}
+                    </Card>
+                </>
+            )}
+        </Pagina>
     );
 }

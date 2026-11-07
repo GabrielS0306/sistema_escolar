@@ -9,25 +9,36 @@ import {
     criarResponsavel,
     vincularAlunoResponsavel,
 } from '../../services/perfilService';
+import { mensagemDeErro } from '../../services/api';
 import { useAlunos } from '../../hooks/useAlunos';
 import { useAuth } from '../../hooks/useAuth';
+import { useToast } from '../../hooks/useToast';
+import { Pagina, PageHeader, EstadoErro, Aviso } from '../../components/ui/Estrutura';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { Input, Select } from '../../components/ui/Campo';
+import { Icone } from '../../components/ui/Icone';
+import { CampoSelecaoBusca } from '../../components/ui/CampoSelecaoBusca';
 
 type Funcao = 'Admin' | 'Coordenador' | 'Professor' | 'Responsavel' | 'Aluno' | 'Funcionario';
 
 const FUNCOES: { value: Funcao; label: string }[] = [
-    { value: 'Admin', label: 'Admin' },
-    { value: 'Coordenador', label: 'Coordenador' },
-    { value: 'Professor', label: 'Professor' },
-    { value: 'Responsavel', label: 'Responsável' },
     { value: 'Aluno', label: 'Aluno' },
+    { value: 'Responsavel', label: 'Responsável' },
+    { value: 'Professor', label: 'Professor' },
     { value: 'Funcionario', label: 'Funcionário' },
+    { value: 'Coordenador', label: 'Coordenador' },
+    { value: 'Admin', label: 'Administrador' },
 ];
 
 // O backend só deixa o Coordenador criar perfis de Aluno e Responsável; o resto é exclusivo do Admin.
 const FUNCOES_COORDENADOR: Funcao[] = ['Aluno', 'Responsavel'];
 
+const ETAPAS = ['Dados gerais', 'Função no sistema'];
+
 export function CadastrarUsuario() {
     const { sessao } = useAuth();
+    const toast = useToast();
     const funcoesPermitidas = sessao?.papelAtivo === 'Coordenador'
         ? FUNCOES.filter((f) => FUNCOES_COORDENADOR.includes(f.value))
         : FUNCOES;
@@ -37,7 +48,6 @@ export function CadastrarUsuario() {
     const [funcao, setFuncao] = useState<Funcao>('Aluno');
     const [erro, setErro] = useState<string | null>(null);
     const [carregando, setCarregando] = useState(false);
-    const [sucesso, setSucesso] = useState(false);
 
     const [nome, setNome] = useState('');
     const [email, setEmail] = useState('');
@@ -75,8 +85,8 @@ export function CadastrarUsuario() {
 
             setUsuarioId(resposta.id);
             setEtapa(2);
-        } catch {
-            setErro('Não foi possível criar o usuário. Verifique os dados e tente novamente.');
+        } catch (err) {
+            setErro(mensagemDeErro(err, 'Não foi possível criar o usuário. Verifique os dados.'));
         } finally {
             setCarregando(false);
         }
@@ -115,10 +125,10 @@ export function CadastrarUsuario() {
                 }
             }
 
-            setSucesso(true);
+            toast.sucesso(`${nome} foi cadastrado(a) como ${FUNCOES.find((f) => f.value === funcao)?.label}.`);
             resetFormulario();
-        } catch {
-            setErro('Não foi possível concluir o cadastro. Tente novamente.');
+        } catch (err) {
+            setErro(mensagemDeErro(err, 'Não foi possível concluir o cadastro.'));
         } finally {
             setCarregando(false);
         }
@@ -141,146 +151,137 @@ export function CadastrarUsuario() {
         setFuncao('Aluno');
     }
 
-    const inputClasses = 'w-full h-11 border border-ink/20 rounded px-3 py-2 mb-5 focus:outline-none focus:border-gold';
-    const labelClasses = 'block text-sm text-slate mb-1';
-
     return (
-        <div className="px-12 py-10">
-            <p className="text-sm text-slate">Gestão de acesso</p>
+        <Pagina estreita>
+            <PageHeader
+                eyebrow="Pessoas"
+                titulo="Novo usuário"
+                descricao="O cadastro tem duas etapas: os dados da pessoa e, depois, a função dela na escola."
+            />
 
-            <h1 className="font-serif text-3xl text-ink mt-1">Novo usuário</h1>
+            {/* Indicador de etapas */}
+            <ol className="flex items-center gap-3 mb-6">
+                {ETAPAS.map((rotulo, i) => {
+                    const numero = i + 1;
+                    const concluida = etapa > numero;
+                    const atual = etapa === numero;
 
-            <p className="text-sm text-slate mt-2">
-                Etapa {etapa} de 2 — {etapa === 1 ? 'dados gerais' : 'função no sistema'}
-            </p>
+                    return (
+                        <li key={rotulo} className="flex items-center gap-3 flex-1">
+                            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 ${
+                                concluida ? 'bg-success text-white' : atual ? 'bg-primary text-on-primary' : 'bg-surface-muted text-slate'
+                            }`}>
+                                {concluida ? <Icone nome="check" tamanho={14} /> : numero}
+                            </span>
+                            <span className={`text-sm ${atual ? 'font-medium text-ink' : 'text-slate'}`}>{rotulo}</span>
+                            {numero < ETAPAS.length && <span className="flex-1 h-px bg-line" aria-hidden="true" />}
+                        </li>
+                    );
+                })}
+            </ol>
 
-            <div className="mt-10 border-t border-ink/10 pt-8">
-                {erro && (
-                    <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2 mb-6">{erro}</p>
-                )}
-                {sucesso && (
-                    <p className="text-sm text-ink bg-gold/10 border border-gold/30 rounded px-3 py-2 mb-6">
-                        Usuário cadastrado com sucesso.
-                    </p>
-                )}
+            {erro && <div className="mb-4"><EstadoErro mensagem={erro} /></div>}
 
-                {etapa === 1 && (
+            {etapa === 1 && (
+                <Card>
                     <form onSubmit={handleSubmitEtapa1}>
-                        <div className="grid grid-cols-2 gap-x-6">
+                        <div className="flex items-center gap-4 mb-6">
+                            <label htmlFor="foto-input" className="relative cursor-pointer group">
+                                <span className="w-16 h-16 rounded-full bg-surface-muted border border-dashed border-line-strong flex items-center justify-center overflow-hidden group-hover:border-gold transition-colors">
+                                    {fotoPreview
+                                        ? <img src={fotoPreview} alt="" className="w-full h-full object-cover" />
+                                        : <Icone nome="upload" className="text-slate" />}
+                                </span>
+                            </label>
                             <div>
-                                <label className={labelClasses}>Nome</label>
-                                <input placeholder='Nome' value={nome} onChange={(e) => setNome(e.target.value)} required className={inputClasses} />
-                            </div>
-                            <div>
-                                <label className={labelClasses}>Email</label>
-                                <input placeholder='Email' type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputClasses} />
-                            </div>
-
-                            <div>
-                                <label className={labelClasses}>Senha provisória</label>
-                                <input placeholder='Senha' type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required minLength={6} className={inputClasses} />
-                            </div>
-                            <div>
-                                <label className={labelClasses}>Telefone</label>
-                                <input placeholder='Telefone' value={telefone} onChange={(e) => setTelefone(e.target.value)} className={inputClasses} />
-                            </div>
-
-                            <div>
-                                <label className={labelClasses}>CPF</label>
-                                <input placeholder='000.000.000-00' value={cpf} onChange={(e) => setCpf(e.target.value)} className={inputClasses} />
-                            </div>
-                            <div>
-                                <label className={labelClasses}>Endereço</label>
-                                <input placeholder='Endereço' value={endereco} onChange={(e) => setEndereco(e.target.value)} className={inputClasses} />
-                            </div>
-
-                            <div>
-                                <label className={labelClasses}>Data de nascimento</label>
-                                <input type="date" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} className={inputClasses} />
-                            </div>
-                            <div>
-                                <label className={labelClasses}>Sexo</label>
-                                <select value={sexo} onChange={(e) => setSexo(e.target.value as '0' | '1')} className={inputClasses}>
-                                <option value="0">Masculino</option>
-                                <option value="1">Feminino</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className={labelClasses}>Foto de perfil</label>
-                                <label
-                                    htmlFor="foto-input"
-                                    className="flex items-center gap-3 h-11 border border-dashed border-ink/25 rounded px-3 py-2 cursor-pointer hover:border-gold transition-colors mb-5"
-                                >
-                                    {fotoPreview ? (
-                                        <img src={fotoPreview} alt="" className="w-7 h-7 rounded-full object-cover" />
-                                    ) : (
-                                        <div className="w-7 h-7 rounded-full bg-ink/5 flex items-center justify-center text-slate text-lg">
-                                            +
-                                        </div>
-                                    )}
-                                    <span className="text-sm text-slate truncate">
-                                        {foto ? foto.name : 'Selecionar imagem'}
-                                    </span>
+                                <label htmlFor="foto-input" className="text-sm font-medium text-gold cursor-pointer hover:underline">
+                                    {foto ? 'Trocar foto' : 'Adicionar foto'}
                                 </label>
-                                <input
-                                    id="foto-input"
-                                    type="file"
-                                    accept="image/*"    
-                                    onChange={(e) => setFoto(e.target.files?.[0] ?? null)}
-                                    className="hidden"
-                                />
+                                <p className="text-xs text-slate">Opcional. JPG ou PNG.</p>
                             </div>
-                            <div>
-                                <label className={labelClasses}>Função</label>
-                                <select value={funcao} onChange={(e) => setFuncao(e.target.value as Funcao)} className={inputClasses}>
-                                    {funcoesPermitidas.map((f) => (
-                                        <option key={f.value} value={f.value}>{f.label}</option>
-                                    ))}
-                                </select>
-                            </div>
+                            <input
+                                id="foto-input"
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => setFoto(e.target.files?.[0] ?? null)}
+                                className="hidden"
+                            />
                         </div>
 
-                        <button type="submit" disabled={carregando} className="bg-ink text-paper rounded px-5 py-2.5 text-sm font-medium hover:bg-ink/90 disabled:opacity-50 mt-2">
-                            {carregando ? 'Criando...' : 'Continuar'}
-                        </button>
-                    </form>
-                )}
+                        <div className="grid sm:grid-cols-2 gap-x-4">
+                            <Input label="Nome completo" value={nome} onChange={(e) => setNome(e.target.value)} required />
+                            <Input label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                            <Input
+                                label="Senha provisória"
+                                type="password"
+                                autoComplete="new-password"
+                                value={senha}
+                                onChange={(e) => setSenha(e.target.value)}
+                                required
+                                minLength={6}
+                                dica="Mínimo 6 caracteres. Informe à pessoa no primeiro acesso."
+                            />
+                            <Input label="Telefone" value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="(00) 00000-0000" />
+                            <Input label="CPF" value={cpf} onChange={(e) => setCpf(e.target.value)} placeholder="000.000.000-00" />
+                            <Input label="Endereço" value={endereco} onChange={(e) => setEndereco(e.target.value)} />
+                            <Input label="Data de nascimento" type="date" value={dataNascimento} onChange={(e) => setDataNascimento(e.target.value)} />
+                            <Select label="Sexo" value={sexo} onChange={(e) => setSexo(e.target.value as '0' | '1')}>
+                                <option value="0">Masculino</option>
+                                <option value="1">Feminino</option>
+                            </Select>
+                            <Select
+                                label="Função"
+                                value={funcao}
+                                onChange={(e) => setFuncao(e.target.value as Funcao)}
+                                dica={funcoesPermitidas.length < FUNCOES.length ? 'A coordenação cadastra alunos e responsáveis.' : undefined}
+                            >
+                                {funcoesPermitidas.map((f) => (
+                                    <option key={f.value} value={f.value}>{f.label}</option>
+                                ))}
+                            </Select>
+                        </div>
 
-                {etapa === 2 && (
+                        <div className="flex justify-end mt-2">
+                            <Button type="submit" carregando={carregando} icone="setaDireita">
+                                {carregando ? 'Criando...' : 'Continuar'}
+                            </Button>
+                        </div>
+                    </form>
+                </Card>
+            )}
+
+            {etapa === 2 && (
+                <Card titulo={`Função: ${FUNCOES.find((f) => f.value === funcao)?.label}`} descricao={`Usuário ${nome} criado. Falta só definir a função.`}>
                     <form onSubmit={handleSubmitEtapa2}>
                         {funcao === 'Aluno' && (
-                            <>
-                                <label className={labelClasses}>Matrícula</label>
-                                <input value={matricula} onChange={(e) => setMatricula(e.target.value)} required className={inputClasses} />
-                            </>
+                            <Input label="Matrícula" value={matricula} onChange={(e) => setMatricula(e.target.value)} required autoFocus />
                         )}
 
                         {funcao === 'Responsavel' && (
-                            <>
-                                <label className={labelClasses}>Vincular a qual aluno?</label>
-                                <select value={alunoVinculadoId} onChange={(e) => setAlunoVinculadoId(e.target.value)} className={inputClasses}>
-                                    <option value="">Selecione um aluno</option>
-
-                                    {alunos.map((a) => (
-                                        <option key={a.id} value={a.id}>{a.nomeUsuario} — {a.matricula}</option>
-                                    ))}
-                                </select>
-                            </>
+                            <CampoSelecaoBusca
+                                label="Vincular a qual aluno?"
+                                opcoes={alunos.map((a) => ({ id: a.id, titulo: a.nomeUsuario, subtitulo: `Matrícula ${a.matricula}` }))}
+                                valor={alunoVinculadoId}
+                                onChange={setAlunoVinculadoId}
+                                placeholder="Digite o nome ou a matrícula do aluno..."
+                                dica="Dá para vincular outros filhos depois."
+                            />
                         )}
 
                         {(funcao === 'Admin' || funcao === 'Coordenador' || funcao === 'Professor' || funcao === 'Funcionario') && (
-                            <>
-                                <p className="text-sm text-slate mb-6">Nenhuma informação adicional é necessária para essa função.</p>
-                            </>
+                            <div className="mb-4">
+                                <Aviso>Nenhuma informação adicional é necessária para essa função.</Aviso>
+                            </div>
                         )}
 
-                        <button type="submit" disabled={carregando} className="bg-ink text-paper rounded px-5 py-2.5 text-sm font-medium hover:bg-ink/90 disabled:opacity-50">
-                            {carregando ? 'Concluindo...' : 'Concluir cadastro'}
-                        </button>
+                        <div className="flex justify-end">
+                            <Button type="submit" carregando={carregando} icone="check">
+                                {carregando ? 'Concluindo...' : 'Concluir cadastro'}
+                            </Button>
+                        </div>
                     </form>
-                )}
-            </div>
-        </div>
+                </Card>
+            )}
+        </Pagina>
     );
 }

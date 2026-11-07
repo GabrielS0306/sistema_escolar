@@ -13,4 +13,5 @@ export interface ConselhoClasse {
 }
 
 export const RESULTADO_LABEL = ['Pendente', 'Aprovado', 'Reprovado'];
-export const RESULTADO_COR = ['text-amber-700', 'text-emerald-700', 'text-red-700'];
+export const RESULTADO_COR = ['text-warning', 'text-success', 'text-danger'];
+export const RESULTADO_TOM = ['alerta', 'sucesso', 'perigo'] as const;
