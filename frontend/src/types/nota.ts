@@ -3,4 +3,5 @@ export interface Nota {
     valor: number;
     bimestre: number;
     nomeAvaliacao: string;
+    disciplina: string;
 }

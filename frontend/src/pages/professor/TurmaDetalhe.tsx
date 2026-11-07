@@ -1,22 +1,29 @@
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useSearchParams } from 'react-router-dom';
 import { TabsTurma } from '../../components/TabsTurma';
+import { useMinhasTurmas } from '../../hooks/useMinhasTurmas';
+import { Pagina, PageHeader } from '../../components/ui/Estrutura';
+import { Icone } from '../../components/ui/Icone';
 
 export function TurmaDetalhe() {
-    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const { vinculos } = useMinhasTurmas();
+
+    // O vínculo (professor × turma × disciplina) vem na URL; com ele o título diz qual turma é.
+    const vinculo = vinculos.find((v) => v.id === searchParams.get('vinculo'));
 
     return (
-        <div className="px-12 py-10">
-            <button onClick={() => navigate(-1)} className="text-sm text-slate hover:text-ink mb-6">
-                ← Voltar
-            </button>
+        <Pagina>
+            <Link to="/dashboard/professor" className="inline-flex items-center gap-1.5 text-sm text-slate hover:text-ink mb-4">
+                <Icone nome="chevronDireita" tamanho={14} className="rotate-180" /> Minhas turmas
+            </Link>
 
-            <p className="text-sm text-slate">Diário de classe</p>
-            <h1 className="font-serif text-3xl text-ink mt-1">Turma</h1>
+            <PageHeader
+                eyebrow={vinculo ? `Turma ${vinculo.turma}` : 'Turma'}
+                titulo={vinculo?.disciplina ?? 'Carregando...'}
+            />
 
-            <div className="mt-8">
-                <TabsTurma />
-                <Outlet />
-            </div>
-        </div>
+            <TabsTurma />
+            <Outlet />
+        </Pagina>
     );
 }

@@ -1,4 +1,10 @@
 import { PUBLICO_ALVO_LABEL, type Comunicado } from '../types/comunicado';
+import { tempoRelativo } from '../utils/datas';
+import { Badge, type TomBadge } from './ui/Badge';
+import { EstadoVazio } from './ui/Estrutura';
+
+// Escola toda, Turma, Professores, Alunos
+const TOM_PUBLICO: TomBadge[] = ['destaque', 'info', 'neutro', 'sucesso'];
 
 interface ListaComunicadosProps {
     comunicados: Comunicado[];
@@ -7,27 +13,32 @@ interface ListaComunicadosProps {
 
 // Mural de comunicados, do mais recente para o mais antigo (a API já devolve nessa ordem).
 export function ListaComunicados({ comunicados, mensagemVazia = 'Nenhum comunicado por enquanto.' }: ListaComunicadosProps) {
-    if (comunicados.length === 0) return <p className="text-sm text-slate">{mensagemVazia}</p>;
+    if (comunicados.length === 0) {
+        return (
+            <EstadoVazio
+                icone="comunicados"
+                titulo={mensagemVazia}
+                descricao="Quando a escola enviar um comunicado para você, ele aparece aqui."
+            />
+        );
+    }
 
     return (
-        <ul className="border-t border-ink/10">
+        <ul className="divide-y divide-line">
             {comunicados.map((c) => (
-                <li key={c.id} className="py-5 border-b border-ink/10">
-                    <div className="flex items-baseline justify-between gap-4">
-                        <p className="font-serif text-lg text-ink">{c.titulo}</p>
-                        <p className="text-xs text-slate whitespace-nowrap">
-                            {new Date(c.dataEnvio).toLocaleDateString('pt-BR')}
-                        </p>
+                <li key={c.id} className="py-4 first:pt-0 last:pb-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                        <Badge tom={TOM_PUBLICO[c.publicoAlvo] ?? 'neutro'}>
+                            {c.publicoAlvo === 1 && c.turma ? `Turma ${c.turma}` : PUBLICO_ALVO_LABEL[c.publicoAlvo]}
+                        </Badge>
+                        <span className="text-xs text-slate">
+                            {tempoRelativo(c.dataEnvio)}
+                            {c.autor && <> · por {c.autor}</>}
+                        </span>
                     </div>
 
-                    <p className="text-xs text-slate mt-1">
-                        <span className="text-gold">
-                            {c.publicoAlvo === 1 && c.turma ? `Turma ${c.turma}` : PUBLICO_ALVO_LABEL[c.publicoAlvo]}
-                        </span>
-                        {c.autor && <> · por {c.autor}</>}
-                    </p>
-
-                    <p className="text-sm text-ink/80 mt-3 whitespace-pre-line">{c.mensagem}</p>
+                    <p className="font-semibold text-ink">{c.titulo}</p>
+                    <p className="text-sm text-slate mt-1 whitespace-pre-line">{c.mensagem}</p>
                 </li>
             ))}
         </ul>

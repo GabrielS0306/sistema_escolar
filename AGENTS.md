@@ -124,7 +124,7 @@ Entidades (todas com `Guid Id`): `Usuario`, perfis em `Entities/Perfis/` (`Aluno
 - Validar existência de FKs no `Create` e devolver `BadRequest("... não existe.")`.
 - **Autorização:** a API exige autenticação por padrão (`FallbackPolicy`). Só `Auth/login` e (opcionalmente) endpoints de docs são `[AllowAnonymous]`. **Todo `POST`/`PUT` precisa de `[Authorize(Roles = "...")]`** — "só logado" não basta (já houve aluno conseguindo criar matrícula e ocorrência). Cadastro de pessoal (Admin, Coordenador, Professor, Funcionário) e gestão de usuários → Admin; Aluno, Responsável, Matrícula e estrutura acadêmica → Admin/Coordenador; lançar nota/frequência → + Professor; ocorrência → + Professor e Funcionário; votar no conselho → Professor.
 - **Identidade vem do token, nunca do corpo.** Autor de comunicado, quem registra ocorrência, professor que vota: leia de `User`, não aceite um `...UsuarioId`/`ProfessorId` no DTO (senão um usuário age em nome de outro).
-- **Dados acadêmicos de um aluno** (resumo, situações, ocorrências): checar com `AcessoAlunoService.PodeVerAluno(User, alunoId)` — equipe vê todos; aluno vê o próprio; responsável vê os filhos. Não duplicar essa regra nos controllers.
+- **Dados acadêmicos de um aluno** (resumo, situações, notas, frequência, ocorrências): checar com `AcessoAlunoService.PodeVerAluno(User, alunoId)` — equipe vê todos; aluno vê o próprio; responsável vê os filhos. Não duplicar essa regra nos controllers.
 - **JWT multi-papel:** um claim `"papel"` por papel (`RoleClaimType = "papel"`). Para ler o id do usuário logado use `User.FindFirst(ClaimTypes.NameIdentifier)` — o ASP.NET remapeia o `sub`, então `FindFirst("sub")` retorna null.
 - **Datas no PostgreSQL:** colunas `timestamp with time zone` rejeitam `DateTime.Kind == Unspecified`. Antes de salvar datas vindas de input, use `DateTime.SpecifyKind(valor, DateTimeKind.Utc)`.
 - **Decimais em importação:** parse com `CultureInfo.InvariantCulture` (senão `7.5` vira `75` no locale pt-BR).
@@ -138,7 +138,8 @@ Entidades (todas com `Guid Id`): `Usuario`, perfis em `Entities/Perfis/` (`Aluno
 Padrão por recurso: `types/` → `services/` → `hooks/` → `pages/` (+ `components/` reutilizáveis).
 
 - `services/api.ts` centraliza `fetch` (`apiGet`, `apiPost`, `apiPut`, `apiPostForm`, `apiPutForm`) e anexa o `Bearer` token lido do `sessionStorage` (`sistema-escolar-sessao`: `{ token, nome, papeis[], papelAtivo }`). Aceita resposta sem corpo (`Ok()`/`NoContent()`). Para upload (`FormData`) **não** setar `Content-Type` manualmente.
-- Erros da API chegam no front só como `Erro na requisição: <status>`; as telas mostram mensagem genérica. Para depurar, olhe o status na aba Rede (F12).
+- Erros: o `api.ts` lança `ApiError` (com `status`) cuja mensagem já é a do backend (`BadRequest("...")`) ou um texto amigável por status. No `catch`, use `mensagemDeErro(err, 'texto padrão')` — nunca concatene o objeto de erro na mensagem.
+- Feedback de ação concluída: `const toast = useToast(); toast.sucesso('...')` (também `erro` e `info`). Erro de formulário/modal fica dentro dele com `<EstadoErro>`.
 - Hooks de dados seguem este formato (evita setState em componente desmontado e o lint `react-hooks/set-state-in-effect`):
 
 ```ts
@@ -162,28 +163,39 @@ useEffect(() => {
 
 - Hooks que precisam recarregar após uma ação expõem `recarregarDados()` (contador no array de dependências).
 - Páginas em subpastas por papel: `pages/auth|admin|aluno|professor|coordenador|responsavel|funcionario/`. Imports de dentro de subpastas usam `../../`.
-- Layouts: `Layout` serve **Admin e Coordenador** (menu montado pelo `papelAtivo`; itens com `somenteAdmin` somem para o Coordenador); `LayoutAluno`, `LayoutProfessor`, `LayoutResponsavel`, `LayoutFuncionario`.
+- Layout: **um só**, `components/layout/AppShell.tsx`, para todas as áreas (`<AppShell key="admin" area="admin" />` na rota). Sidebar com ícones (vira gaveta no celular), cabeçalho com o caminho ("Gestão › Turmas") e botão de tema, menu do usuário (perfil, **trocar de papel**, tema, sair). Os menus de todos os papéis ficam em `components/layout/menus.ts` — tela nova entra no menu ali. A área vem da rota, não da sessão (senão trocar Admin → Coordenador manteria o menu errado).
 - Rotas: `/login`, `/selecionar-papel`, `/admin/*`, `/coordenador/*`, `/dashboard/{aluno|professor|responsavel|funcionario|sem-perfil}`. As telas de gestão compartilhadas ficam em `rotasGestao()` no `App.tsx` — tela nova de gestão entra ali e aparece para os dois papéis. O parâmetro da rota precisa casar com o `useParams` (já houve `:id` vs `turmaId` deixando a tela travada em "Carregando…").
 - Login: 1 papel → vai direto ao dashboard; 2+ papéis → `/selecionar-papel`.
 - Registro de usuário **não é público**: só Admin/Coordenador, em `.../usuarios/novo`, em 2 etapas (dados gerais + foto → completar a função, ex.: matrícula do Aluno). O Coordenador só vê as funções Aluno e Responsável.
-- Componentes compartilhados já existentes — reaproveite antes de criar: `Modal`, `ResumoAlunoPainel`, `TabelaConselhos`, `ListaComunicados`, `NovoComunicadoModal`, `ComunicadosRecentes`, `NovaOcorrenciaModal`, `TabelaOcorrencias`, `DocumentosUsuarioModal`, `EditarUsuarioModal`.
+- **Kit visual** em `components/ui/` — use sempre em vez de escrever classes de botão/input/tabela à mão. A galeria `/ui` (só em desenvolvimento) mostra tudo nos dois temas:
+  - `Button` (variantes `primario`, `secundario`, `fantasma`, `perigo`; `icone`, `carregando`), `Input`/`Select`/`Textarea` (já com `label`, `dica`, `erro`), `CampoBusca`, `CampoSelecaoBusca` (escolher aluno etc. digitando — use no lugar de `<select>` com listas longas);
+  - `Pagina` + `PageHeader` (estrutura de toda tela), `BarraFerramentas`, `Card`, `StatCard`, `Badge` (status), `Avatar`, `Tabela`/`Th`/`Tr`/`Td`/`CelulaDupla`;
+  - `Carregando`, `EstadoVazio` (sempre com orientação do próximo passo), `EstadoErro`, `Aviso`; `Icone` (nomes tipados); `SeletorTema`.
+- Componentes de domínio já existentes — reaproveite antes de criar: `Modal`, `ResumoAlunoPainel`, `TabelaConselhos`, `ListaComunicados`, `NovoComunicadoModal`, `PaginaComunicados`, `ComunicadosRecentes`, `NovaOcorrenciaModal`, `TabelaOcorrencias`, `DocumentosUsuarioModal`, `EditarUsuarioModal`, `PerfilModal`, `TabsTurma`.
+- Utilitários: `utils/datas.ts` (`saudacao`, `hojePorExtenso`, `dataCurta`, `tempoRelativo`) e `utils/notas.ts` (`lerNota` aceita "7,5" e "7.5" e valida 0–10; nunca use `type="number"`/`Number()` direto em nota).
 - Ação irreversível (voto, prova final, encerrar conselho): o modal mostra o resultado **antes** de confirmar, usando a mesma regra do backend (ex.: `mediaComProvaFinal` em `types/recuperacao.ts`).
 - Constantes exportadas (rótulos de enum etc.) ficam em `types/`, não em arquivos de componente — senão o lint `react-refresh/only-export-components` reclama.
-- Padrão de tela de gestão: caixa de busca à esquerda, botão que abre `Modal` com o formulário à direita, histórico em tabela embaixo (que recarrega sozinho após registrar). Exemplo completo: `pages/professor/Aba*.tsx` dentro de `TurmaDetalhe` (abas Alunos, Frequência, Notas, Observações).
+- Padrão de tela de gestão: `Pagina` → `PageHeader` (ação principal no canto) → `Card semPadding` com `BarraFerramentas` (busca/filtros) e `Tabela` → `Modal` com o formulário; após salvar, `toast.sucesso(...)` e `recarregarDados()`. Exemplos: `pages/admin/Recuperacao.tsx`, `pages/professor/Aba*.tsx`.
 - Cuidado ao navegar entre abas: o query param `?vinculo=<id>` precisa ser preservado.
 
 ### Identidade visual (não usar o azul/cinza padrão do Tailwind)
 
-Tokens em `index.css` via `@theme`:
+Azul-marinho + dourado, com **tema claro e escuro**. As cores são variáveis CSS em `index.css` (valor em `:root` e em `.dark`), expostas ao Tailwind via `@theme inline` — então **use os tokens, nunca cores fixas** (`bg-white`, `text-gray-*`, `blue-*`, `red-50`...), senão a tela quebra no escuro.
 
-| Token | Cor | Uso |
-|---|---|---|
-| `ink` | `#1B2A4A` | sidebar, textos fortes, botão primário |
-| `paper` | `#F7F5F0` | fundo |
-| `gold` | `#C9A227` | destaque, item ativo, foco de input |
-| `slate` | `#5B6B82` | texto secundário |
+| Token | Uso |
+|---|---|
+| `paper` | fundo da aplicação |
+| `surface` / `surface-muted` | cards, modais, tabelas / hover, áreas recuadas |
+| `ink` / `slate` | texto forte / texto secundário |
+| `line` / `line-strong` | bordas e divisores |
+| `gold` / `gold-soft` | destaque, item ativo, foco / fundo de destaque |
+| `primary` / `on-primary` | botão primário (marinho no claro, dourado no escuro) |
+| `sidebar`, `sidebar-fg`, `sidebar-muted` | barra lateral (marinho nos dois temas) |
+| `success`, `warning`, `danger`, `info` (+ `-soft`) | status: aprovado, recuperação, reprovado/falta, informação |
 
-Fontes: **Source Serif 4** (títulos e números grandes) + **IBM Plex Sans** (corpo). Estilo "livro-razão": divisores finos (`border-ink/10`), tabelas sem cards com sombra, inputs `h-11` com `focus:border-gold`, ícones de contorno. Sidebar fixa agrupada em seções.
+- Tema: `useTema()` / `definirTema('claro' | 'escuro' | 'sistema')`; o `index.html` aplica antes da primeira pintura (chave `sistema-escolar-tema` no `localStorage`).
+- Fontes: **IBM Plex Sans** para tudo (títulos em `font-semibold`); **Source Serif 4** só na marca e em números grandes (`StatCard`, placares).
+- Estilo: cards `rounded-xl` com borda fina e sombra leve (`shadow-card`), inputs `h-10 rounded-lg` com foco dourado, status sempre em `Badge`, ícones de contorno. Telas pensadas também para celular (tabelas rolam na horizontal, modal vira folha que sobe).
 
 ## Fluxo de Git
 
@@ -226,10 +238,11 @@ Branches:
 
 ## Estado atual e próximos passos
 
-**Núcleo completo** (backend + telas): autenticação multi-papel; cadastro de usuário em 2 etapas com foto; gestão de usuários pelo Admin (editar, redefinir senha, documentos com URL assinada); perfil próprio; importação de notas/frequência por planilha; ciclo acadêmico inteiro (notas → recuperação/prova final → conselho de classe com votação); comunicados com público-alvo; ocorrências; áreas e dashboards de **todos os papéis**: Admin, Coordenador (`/coordenador`), Professor (hub com 4 abas + conselho + comunicados), Aluno, Responsável (vários filhos) e Funcionário (alunos + ocorrências).
+**Núcleo completo e redesenhado** (backend + telas, tema claro/escuro, layout único responsivo): autenticação multi-papel; cadastro de usuário em 2 etapas com foto; gestão de usuários pelo Admin (editar, redefinir senha, documentos com URL assinada); perfil próprio; importação de notas/frequência por planilha; ciclo acadêmico inteiro (notas → recuperação/prova final → conselho de classe com votação); comunicados com público-alvo; ocorrências; áreas e dashboards de **todos os papéis**: Admin, Coordenador (`/coordenador`), Professor (hub com 4 abas + conselho + comunicados), Aluno, Responsável (vários filhos) e Funcionário (alunos + ocorrências).
 
 Próximos passos:
 
 - **Módulo Financeiro** — deliberadamente deixado para o fim; é o próximo grande bloco.
-- Melhorias de qualidade, sem pressa: testes automatizados; responsividade (telas pensadas para desktop); mostrar na tela a mensagem de erro real da API (hoje genérica); preparação para produção.
+- **Publicar o projeto** (portfólio): API e frontend online, URL da API em variável de ambiente (hoje `localhost:5155` está fixo em `services/api.ts`), dados e logins de demonstração, README com capturas de tela, contornar a pausa do Supabase.
+- Testes automatizados (começar pelas regras de negócio: média, recuperação, conselho/empate).
 - Decisões em aberto: dar ao Funcionário acesso aos documentos (secretaria lidando com atestados) — hoje só o Admin.

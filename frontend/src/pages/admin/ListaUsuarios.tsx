@@ -1,46 +1,80 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useUsuarios } from '../../hooks/useUsuarios';
 import { EditarUsuarioModal } from '../../components/EditarUsuarioModal';
 import { DocumentosUsuarioModal } from '../../components/DocumentosUsuarioModal';
+import { Pagina, PageHeader, BarraFerramentas, Carregando, EstadoErro, EstadoVazio } from '../../components/ui/Estrutura';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { CampoBusca } from '../../components/ui/Campo';
+import { Avatar } from '../../components/ui/Avatar';
+import { Tabela, TabelaCabecalho, TabelaCorpo, Th, Tr, Td, CelulaDupla } from '../../components/ui/Tabela';
 
 export function ListaUsuarios() {
+    const navigate = useNavigate();
     const { usuarios, carregando, erro } = useUsuarios();
+    const [busca, setBusca] = useState('');
     const [usuarioSelecionado, setUsuarioSelecionado] = useState<string | null>(null);
     const [usuarioDocumentos, setUsuarioDocumentos] = useState<{ id: string; nome: string } | null>(null);
 
-    if (carregando) return <p className="text-slate p-12">Carregando...</p>;
-    if (erro) return <p className="text-red-600 p-12">Erro: {erro}</p>;
+    const termo = busca.toLowerCase();
+    const filtrados = usuarios.filter((u) => `${u.nome} ${u.email}`.toLowerCase().includes(termo));
 
     return (
-        <div className="px-12 py-10">
-            <p className="text-sm text-slate">Gestão de acesso</p>
-            <h1 className="font-serif text-3xl text-ink mt-1">Usuários</h1>
+        <Pagina>
+            <PageHeader
+                eyebrow="Pessoas"
+                titulo="Usuários"
+                descricao={carregando ? undefined : `${usuarios.length} usuários cadastrados. Edite dados, redefina senhas e guarde documentos.`}
+                acoes={<Button icone="novoUsuario" onClick={() => navigate('novo')}>Novo usuário</Button>}
+            />
 
-            <div className="mt-10 border-t border-ink/10 divide-y divide-ink/10">
-                {usuarios.map((u) => (
-                    <div key={u.id} className="flex items-center justify-between py-4">
-                        <div>
-                            <p className="text-ink">{u.nome}</p>
-                            <p className="text-sm text-slate">{u.email}</p>
-                        </div>
+            <Card semPadding>
+                <div className="p-4">
+                    <BarraFerramentas>
+                        <CampoBusca value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou e-mail..." />
+                    </BarraFerramentas>
+                </div>
 
-                        <div className="flex items-center gap-5 text-sm">
-                            <button onClick={() => setUsuarioSelecionado(u.id)} className="text-slate hover:text-gold transition-colors">
-                                Editar
-                            </button>
-                            <button
-                                onClick={() => setUsuarioDocumentos({ id: u.id, nome: u.nome })}
-                                className="text-slate hover:text-gold transition-colors"
-                            >
-                                Documentos
-                            </button>
-                        </div>
-                    </div>
-                ))}
-            </div>
+                {carregando && <Carregando />}
+                {erro && <div className="px-4 pb-4"><EstadoErro mensagem={erro} /></div>}
+
+                {!carregando && !erro && (
+                    filtrados.length === 0 ? (
+                        <EstadoVazio icone="busca" titulo="Nenhum usuário encontrado" descricao={busca ? 'Tente outro nome ou e-mail.' : undefined} />
+                    ) : (
+                        <Tabela>
+                            <TabelaCabecalho>
+                                <Th>Usuário</Th>
+                                <Th className="text-right">Ações</Th>
+                            </TabelaCabecalho>
+                            <TabelaCorpo>
+                                {filtrados.map((u) => (
+                                    <Tr key={u.id}>
+                                        <Td>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar nome={u.nome} />
+                                                <CelulaDupla principal={u.nome} secundario={u.email} />
+                                            </div>
+                                        </Td>
+                                        <Td className="text-right whitespace-nowrap">
+                                            <Button tamanho="sm" variante="fantasma" icone="usuario" onClick={() => setUsuarioSelecionado(u.id)}>
+                                                Editar
+                                            </Button>
+                                            <Button tamanho="sm" variante="fantasma" icone="documentos" onClick={() => setUsuarioDocumentos({ id: u.id, nome: u.nome })}>
+                                                Documentos
+                                            </Button>
+                                        </Td>
+                                    </Tr>
+                                ))}
+                            </TabelaCorpo>
+                        </Tabela>
+                    )
+                )}
+            </Card>
 
             <EditarUsuarioModal usuarioId={usuarioSelecionado} onFechar={() => setUsuarioSelecionado(null)} />
             <DocumentosUsuarioModal usuario={usuarioDocumentos} onFechar={() => setUsuarioDocumentos(null)} />
-        </div>
+        </Pagina>
     );
 }
